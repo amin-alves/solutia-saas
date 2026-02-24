@@ -1,67 +1,26 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter, useParams } from 'next/navigation'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { supabase } from '../../lib/supabaseClient';
 
-export default function LoginPage() {
-  const router = useRouter()
-  const { slug } = useParams()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
+export default function SignupPage() {
+  const router = useRouter();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-
-    if (error) {
-      setError(error.message)
-      return
-    }
-
-    // Vincular usuário à empresa pelo slug
-    const { data: company } = await supabase
-      .from('companies')
-      .select('id')
-      .eq('slug', slug)
-      .single()
-
-    if (company && data.user) {
-      await supabase
-        .from('profiles')
-        .update({ company_id: company.id })
-        .eq('id', data.user.id)
-    }
-
-    router.push(`/${slug}/dashboard`)
-  }
+  const handleSignup = async () => {
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (!error) router.push('/(auth)/dashboard');
+    else alert(error.message);
+  };
 
   return (
     <div>
-      <h1>Login - {slug}</h1>
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Senha"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Entrar</button>
-      </form>
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      <h2>Signup</h2>
+      <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
+      <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
+      <button onClick={handleSignup}>Signup</button>
     </div>
-  )
+  );
 }
