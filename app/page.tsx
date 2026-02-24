@@ -1,3 +1,5 @@
+"use client";
+
 import { supabase } from "../lib/supabase"; // ajuste o caminho relativo
 import Image from "next/image";
 import { useEffect, useState } from "react";
