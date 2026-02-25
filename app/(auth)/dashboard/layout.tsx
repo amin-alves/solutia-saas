@@ -1,28 +1,58 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import { supabase } from '../../../lib/supabase';
+import { useEffect, useState } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 
-interface Props {
-  children: React.ReactNode;
+type Document = {
+  id: string
+  name: string
+  path: string
 }
 
-export default function DashboardLayout({ children }: Props) {
-  const [user, setUser] = useState<any>(null);
+export default function DashboardPage() {
+  const [documents, setDocuments] = useState<Document[]>([])
+  const supabase = createClientComponentClient()
 
   useEffect(() => {
-    const getSession = async () => {
-      const { data } = await supabase.auth.getSession();
-      setUser(data.session?.user ?? null);
-    };
-    getSession();
-  }, []);
+    async function fetchDocuments() {
+      // Ler company_id do cookie
+      const company_id = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('company_id='))
+        ?.split('=')[1]
+
+      if (!company_id) return
+
+      const { data, error } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('company_id', company_id)
+
+      if (error) {
+        console.error('Erro ao buscar documentos:', error)
+      } else {
+        setDocuments(data || [])
+      }
+    }
+
+    fetchDocuments()
+  }, [])
 
   return (
-    <div>
-      <h1>Dashboard Layout</h1>
-      {user && <p>Welcome, {user.email}</p>}
-      <div>{children}</div>
+    <div className="p-6">
+      <h1 className="text-2xl font-bold mb-4">Dashboard</h1>
+
+      {documents.length === 0 ? (
+        <p>Nenhum documento encontrado para esta empresa.</p>
+      ) : (
+        <ul className="list-disc pl-5">
+          {documents.map(doc => (
+            <li key={doc.id}>
+              {doc.name} - <a href={doc.path} target="_blank">Abrir</a>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
-  );
+  )
 }
