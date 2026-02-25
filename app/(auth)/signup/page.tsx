@@ -11,7 +11,7 @@ export default function SignupPage() {
 
   const handleSignup = async () => {
     const { error } = await supabase.auth.signUp({ email, password });
-    if (!error) router.push('/(auth)/dashboard');
+    if (!error) router.push('/dashboard');
     else alert(error.message);
   };
 
