@@ -22,31 +22,26 @@ export async function proxy(req: NextRequest) {
     }
   )
 
+  // Pega a sessão do usuário
   const {
     data: { session },
   } = await supabase.auth.getSession()
 
-  // Bloqueia dashboard se não houver sessão
-  if (req.nextUrl.pathname.startsWith('/dashboard') && !session) {
-    return NextResponse.redirect(new URL('/', req.url))
-  }
+  // Rotas protegidas: /dashboard e /settings
+  const protectedPaths = ['/dashboard', '/settings']
 
-  // 🔹 BUSCAR PROFILE DO USUÁRIO
-  if (session) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('company_id, role')
-      .eq('user_id', session.user.id)
-      .single()
-
-    // Armazena company_id em cookie
-    res.cookies.set('company_id', profile?.company_id || '')
-    res.cookies.set('role', profile?.role || 'user')
+  if (
+    protectedPaths.some((path) => req.nextUrl.pathname.startsWith(path)) &&
+    !session
+  ) {
+    // Redireciona para /login se não estiver logado
+    return NextResponse.redirect(new URL('/login', req.url))
   }
 
   return res
 }
 
+// Matcher define quais URLs vão passar pelo proxy
 export const config = {
-  matcher: ['/dashboard/:path*'],
+  matcher: ['/dashboard/:path*', '/settings/:path*'],
 }
