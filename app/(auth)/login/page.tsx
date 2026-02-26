@@ -19,20 +19,23 @@ export default function LoginPage() {
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
-      });
+      })
 
       if (error) {
-        setMessage(error.message);
-      } else {
-        setMessage('Login realizado com sucesso!');
-        router.push('/(auth)/dashboard'); // página após login
-      }
-    } catch (err) {
-      setMessage('Erro inesperado. Tente novamente.');
-      console.error(err);
-    } finally {
-      setLoading(false);
+        setMessage(error.message)
+      } else if (data?.session) {
+        setMessage('Login realizado com sucesso!')
+        // Redireciona para a URL correta do dashboard
+        router.push('/dashboard') // NÃO usar /(auth)/dashboard
+    } else {
+      setMessage('Não foi possível criar a sessão. Tente novamente.')
     }
+  } catch (err) {
+    setMessage('Erro inesperado. Tente novamente.')
+    console.error(err)
+  } finally {
+      setLoading(false)
+  }
   };
 
   return (
