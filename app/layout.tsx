@@ -1,28 +1,67 @@
-import './globals.css';
-import type { Metadata } from 'next';
-import { Geist, Geist_Mono } from 'next/font/google';
+"use client"
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
-});
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+import Sidebar from "../../components/Sidebar"
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
-  subsets: ['latin'],
-});
+export default function SistemaLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const router = useRouter()
+  const [user, setUser] = useState<string | null>(null)
 
-export const metadata: Metadata = {
-  title: 'Solutia SaaS',
-  description: 'Painel de SaaS com Next.js e Supabase',
-};
+  useEffect(() => {
+    const auth = localStorage.getItem("solutia_auth")
+    const email = localStorage.getItem("solutia_user")
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+    if (!auth) {
+      router.push("/") // ← VOLTA PARA LOGIN
+    } else {
+      setUser(email)
+    }
+  }, [router])
+
+  function logout() {
+    localStorage.removeItem("solutia_auth")
+    localStorage.removeItem("solutia_user")
+    router.push("/") // ← VOLTA PARA LOGIN
+  }
+
   return (
-    <html lang="pt-BR">
-      <body className={`${geistSans.variable} ${geistMono.variable} font-sans`}>
-        {children}
-      </body>
-    </html>
-  );
+    <div className="flex">
+      <Sidebar />
+
+      <div className="flex-1 flex flex-col min-h-screen bg-gray-100">
+        <header className="bg-white shadow px-8 py-4 flex justify-between items-center">
+          <h1 className="text-lg font-semibold text-gray-700">
+            Sistema de Gestão
+          </h1>
+
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <p className="text-sm font-medium text-gray-800">
+                {user}
+              </p>
+              <p className="text-xs text-gray-500">
+                Usuário logado
+              </p>
+            </div>
+
+            <button
+              onClick={logout}
+              className="bg-red-500 text-white px-3 py-1 rounded-lg text-sm hover:bg-red-600"
+            >
+              Sair
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  )
 }

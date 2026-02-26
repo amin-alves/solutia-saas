@@ -13,7 +13,7 @@ export default function LoginPage() {
     localStorage.setItem("solutia_auth", "true")
     localStorage.setItem("solutia_user", email)
 
-    router.push("/dashboard")
+    router.push("/dashboard") // ← VAI PARA O DASHBOARD
   }
 
   return (
@@ -23,16 +23,23 @@ export default function LoginPage() {
         className="bg-white p-8 rounded-xl shadow-md w-96"
       >
         <h1 className="text-2xl font-bold mb-6 text-center">
-          Login - Solutia
+          Solutia Core
         </h1>
 
         <input
           type="email"
-          placeholder="Seu email"
+          placeholder="Email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full mb-4 px-3 py-2 border rounded-lg"
+        />
+
+        <input
+          type="password"
+          placeholder="Senha"
+          required
+          className="w-full mb-6 px-3 py-2 border rounded-lg"
         />
 
         <button
