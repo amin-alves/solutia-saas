@@ -11,6 +11,7 @@ export default function SistemaLayout({
 }) {
   const router = useRouter()
   const [user, setUser] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     const auth = localStorage.getItem("solutia_auth")
@@ -21,7 +22,9 @@ export default function SistemaLayout({
     } else {
       setUser(email)
     }
-  }, [])
+
+    setLoading(false)
+  }, [router])
 
   function logout() {
     localStorage.removeItem("solutia_auth")
@@ -29,13 +32,14 @@ export default function SistemaLayout({
     router.push("/")
   }
 
+  if (loading) return null
+
   return (
     <div className="flex">
       <Sidebar />
 
       <div className="flex-1 flex flex-col min-h-screen bg-gray-100">
         
-        {/* HEADER */}
         <header className="bg-white shadow px-8 py-4 flex justify-between items-center">
           <h1 className="text-lg font-semibold text-gray-700">
             Sistema de Gestão
@@ -60,7 +64,6 @@ export default function SistemaLayout({
           </div>
         </header>
 
-        {/* CONTEÚDO */}
         <main className="flex-1 p-8">
           {children}
         </main>
