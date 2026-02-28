@@ -1,41 +1,105 @@
-import { ArrowUpRight, ArrowDownRight, Users, FileCheck, Clock, CheckCircle } from "lucide-react"
-
-const METRICS = [
-    {
-        title: "Processos Ativos",
-        value: "142",
-        change: "+12%",
-        isPositive: true,
-        icon: Clock,
-        color: "blue"
-    },
-    {
-        title: "Documentos",
-        value: "8.4k",
-        change: "+4%",
-        isPositive: true,
-        icon: FileCheck,
-        color: "indigo"
-    },
-    {
-        title: "Usuários",
-        value: "34",
-        change: "-2",
-        isPositive: false,
-        icon: Users,
-        color: "rose"
-    },
-    {
-        title: "Concluídos (Mês)",
-        value: "89%",
-        change: "+2.4%",
-        isPositive: true,
-        icon: CheckCircle,
-        color: "emerald"
-    }
-]
+import { useEffect, useState } from "react"
+import { ArrowUpRight, ArrowDownRight, Users, FileCheck, Clock, CheckCircle, Loader2 } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function BiMetrics() {
+    const [metrics, setMetrics] = useState({
+        processosAtivos: 0,
+        documentosTotais: 0,
+        usuariosAtivos: 0,
+        taxaConclusao: "0%"
+    })
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        fetchMetrics()
+    }, [])
+
+    const fetchMetrics = async () => {
+        try {
+            setLoading(true)
+
+            // Busca Processos Totais e Concluídos
+            const { data: workflowsData, error: workflowsError } = await supabase
+                .from('workflows')
+                .select('status')
+                .is('deleted_at', null)
+
+            if (workflowsError) throw workflowsError
+
+            const processosTotal = workflowsData?.length || 0
+            const processosConcluidos = workflowsData?.filter(w =>
+                w.status.toLowerCase().includes('concluído') ||
+                w.status.toLowerCase().includes('aprovado')
+            ).length || 0
+
+            const ativos = processosTotal - processosConcluidos
+            const taxa = processosTotal > 0 ? Math.round((processosConcluidos / processosTotal) * 100) : 0
+
+            // Busca Total de Documentos (Capas)
+            const { count: docsCount, error: docsError } = await supabase
+                .from('documentos')
+                .select('*', { count: 'exact', head: true })
+                .is('deleted_at', null)
+
+            if (docsError) throw docsError
+
+            // Busca Total de Usuários na Empresa
+            const { count: usersCount, error: usersError } = await supabase
+                .from('perfis')
+                .select('*', { count: 'exact', head: true })
+
+            if (usersError) throw usersError
+
+            setMetrics({
+                processosAtivos: ativos,
+                documentosTotais: docsCount || 0,
+                usuariosAtivos: usersCount || 0,
+                taxaConclusao: `${taxa}%`
+            })
+
+        } catch (error) {
+            console.error("Erro ao carregar métricas BI:", error)
+        } finally {
+            setLoading(false)
+        }
+    }
+
+    const CARDS = [
+        {
+            title: "Processos Ativos",
+            value: metrics.processosAtivos.toString(),
+            change: "+12%",
+            isPositive: true,
+            icon: Clock,
+            color: "blue"
+        },
+        {
+            title: "Documentos",
+            value: metrics.documentosTotais.toString(),
+            change: "+4%",
+            isPositive: true,
+            icon: FileCheck,
+            color: "indigo"
+        },
+        {
+            title: "Usuários",
+            value: metrics.usuariosAtivos.toString(),
+            change: "Estável",
+            isPositive: true,
+            icon: Users,
+            color: "emerald"
+        },
+        {
+            title: "Taxa Conclusão",
+            value: metrics.taxaConclusao,
+            change: "+2.4%",
+            isPositive: true,
+            icon: CheckCircle,
+            color: "emerald"
+        }
+    ]
+
     return (
         <div className="flex flex-col h-full gap-4">
             {/* Header / Titulo BI */}
@@ -44,14 +108,18 @@ export default function BiMetrics() {
                     <h2 className="text-xl font-bold text-slate-800">Visão Geral</h2>
                     <p className="text-sm text-slate-500">Métricas e acompanhamento em tempo real</p>
                 </div>
-                <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 shadow-sm flex gap-2">
-                    <span className="flex items-center gap-1"><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online</span>
+                <div className="bg-white px-3 py-1.5 rounded-lg border border-slate-200 text-xs font-semibold text-slate-600 shadow-sm flex items-center gap-2">
+                    {loading ? (
+                        <><Loader2 size={12} className="animate-spin text-blue-500" /> Atualizando...</>
+                    ) : (
+                        <><div className="w-2 h-2 rounded-full bg-emerald-500"></div> Online</>
+                    )}
                 </div>
             </div>
 
             {/* Cards de KPIs */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                {METRICS.map((metric, idx) => {
+                {CARDS.map((metric, idx) => {
                     const Icon = metric.icon
                     const colorMap: Record<string, string> = {
                         blue: "bg-blue-100 text-blue-600",
@@ -78,7 +146,9 @@ export default function BiMetrics() {
                                 </div>
 
                                 <div>
-                                    <h3 className="text-3xl font-black text-slate-800 tracking-tight">{metric.value}</h3>
+                                    <h3 className="text-3xl font-black text-slate-800 tracking-tight">
+                                        {loading ? "..." : metric.value}
+                                    </h3>
                                     <p className="text-sm font-medium text-slate-500 mt-1">{metric.title}</p>
                                 </div>
                             </div>
