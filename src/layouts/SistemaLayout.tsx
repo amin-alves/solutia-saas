@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useNavigate, Outlet } from "react-router-dom"
+import { supabase } from "@/lib/supabase"
 import Sidebar from "../components/Sidebar"
 
 export default function SistemaLayout() {
@@ -9,21 +10,42 @@ export default function SistemaLayout() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        const auth = localStorage.getItem("solutia_auth")
-        const email = localStorage.getItem("solutia_user")
-        const nomeEmpresa = localStorage.getItem("solutia_empresa_nome")
+        let isMounted = true
 
-        if (!auth) {
-            navigate("/")
-        } else {
-            setUser(email)
-            setEmpresa(nomeEmpresa || "Empresa Desconhecida")
+        const checkSession = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+
+            if (!session) {
+                if (isMounted) navigate("/")
+                return
+            }
+
+            if (isMounted) {
+                setUser(session.user.email ?? "Usuário")
+                // Recuperamos o nome da empresa do localStorage enquanto não integramos as tabelas
+                const nomeEmpresa = localStorage.getItem("solutia_empresa_nome")
+                setEmpresa(nomeEmpresa || "Empresa Desconhecida")
+                setLoading(false)
+            }
         }
 
-        setLoading(false)
+        checkSession()
+
+        // Listener para deslogar imediatamente caso a sessão expire
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+            if (!session && isMounted) {
+                navigate("/")
+            }
+        })
+
+        return () => {
+            isMounted = false
+            subscription.unsubscribe()
+        }
     }, [navigate])
 
-    function logout() {
+    async function logout() {
+        await supabase.auth.signOut()
         localStorage.removeItem("solutia_auth")
         localStorage.removeItem("solutia_user")
         localStorage.removeItem("solutia_empresa_id")

@@ -1,128 +1,150 @@
 import { useState } from "react"
 import { useNavigate } from "react-router-dom"
-
-const users: Record<string, any> = {
-    "amin1@teste.com": {
-        senha: "123",
-        empresa_id: "empresa_001",
-        empresa_nome: "A.M.I. Engenharia",
-    },
-    "amin2@teste.com": {
-        senha: "123",
-        empresa_id: "empresa_002",
-        empresa_nome: "Solutia Tech",
-    }
-}
+import { Eye, EyeOff, Lock, Loader2 } from "lucide-react"
+import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
     const navigate = useNavigate()
     const [email, setEmail] = useState("")
     const [senha, setSenha] = useState("")
     const [erro, setErro] = useState("")
+    const [isLoading, setIsLoading] = useState(false)
+    const [showPassword, setShowPassword] = useState(false)
 
-    function handleLogin(e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) {
+    async function handleLogin(e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) {
         e.preventDefault()
         setErro("")
+        setIsLoading(true)
 
-        const cleanEmail = email.trim().toLowerCase()
-        const user = users[cleanEmail]
+        try {
+            const cleanEmail = email.trim().toLowerCase()
 
-        if (!user || user.senha !== senha) {
-            setErro("E-mail ou senha incorretos.")
-            return
+            const { data, error } = await supabase.auth.signInWithPassword({
+                email: cleanEmail,
+                password: senha,
+            })
+
+            if (error) {
+                setErro("E-mail ou senha incorretos.")
+                setIsLoading(false)
+                return
+            }
+
+            if (data?.session) {
+                // AUTH VIA SUPABASE OK
+                localStorage.setItem("solutia_auth", "true")
+                localStorage.setItem("solutia_user", cleanEmail)
+
+                // Os dados complementares da empresa devem ser puxados depois através da sessão do supabase
+                // ou salvos posteriormente no contexto global após o carregamento da API
+                localStorage.setItem("solutia_empresa_id", "empresa_geral")
+                localStorage.setItem("solutia_empresa_nome", "Agência Logada - Supabase")
+
+                navigate("/dashboard", { replace: true })
+            }
+        } catch (error) {
+            console.error("Erro no login:", error)
+            setErro("Ocorreu um erro inesperado ao conectar ao servidor.")
+        } finally {
+            setIsLoading(false)
         }
-
-        // AUTH SIMULADO
-        localStorage.setItem("solutia_auth", "true")
-        localStorage.setItem("solutia_user", cleanEmail)
-        localStorage.setItem("solutia_empresa_id", user.empresa_id)
-        localStorage.setItem("solutia_empresa_nome", user.empresa_nome)
-
-        navigate("/dashboard", { replace: true })
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 font-sans flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
-            <header className="px-8 py-6 flex justify-between items-center max-w-7xl mx-auto w-full">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-600 rounded-xl shadow-lg shadow-indigo-600/30 flex items-center justify-center">
-                        <span className="text-white font-black text-xl">SOLUTIA SAAS</span>
-                    </div>
+        <div className="min-h-screen bg-blue-950 font-sans flex flex-col justify-center items-center relative overflow-hidden selection:bg-yellow-400 selection:text-blue-950 pb-16">
+
+            {/* Gradientes decorativos sutis no fundo azul */}
+            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-blue-900 to-blue-950 z-0"></div>
+            <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-blue-600 blur-[150px] opacity-20 z-0"></div>
+
+            {/* Logo Wrapper */}
+            <div className="mb-6 text-center z-10 flex flex-col items-center">
+                <div className="relative w-24 h-8 mb-2 flex items-center justify-center">
+                    {/* Elementos decorativos minimalistas referenciando as cores */}
+                    <div className="absolute top-1 left-0 w-12 h-2.5 bg-blue-400 rounded-full rotate-[-15deg] opacity-90"></div>
+                    <div className="absolute top-1 right-0 w-12 h-2.5 bg-yellow-400 rounded-full rotate-[15deg] opacity-90"></div>
                 </div>
-            </header>
+                <h1 className="text-4xl md:text-[2.75rem] font-black text-white tracking-widest leading-none mt-2 drop-shadow-sm">
+                    SOLUTIA
+                </h1>
+                <p className="text-[0.7rem] font-bold text-yellow-400 tracking-[0.4em] uppercase mt-2">
+                    DOCS
+                </p>
+            </div>
 
-            <main className="flex-1 flex flex-col md:flex-row items-center justify-center max-w-7xl mx-auto w-full px-6 gap-12 lg:gap-24 my-10">
-                {/* Texto e Chamada */}
-                <div className="flex-1 text-center md:text-left">
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-100 text-indigo-700 font-semibold text-sm mb-6">
-                        <span className="w-2 h-2 rounded-full bg-indigo-600 animate-pulse"></span>
+            <main className="w-full max-w-[400px] px-5 z-10 flex flex-col items-center">
 
-                    </div>
-                    <h2 className="text-5xl lg:text-7xl font-black text-slate-900 mb-6 leading-[1.1] tracking-tight">
-                        Gestão inteligente para <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-cyan-500">sua empresa</span>
-                    </h2>
-                    <p className="text-lg text-slate-600 mb-10 max-w-xl mx-auto md:mx-0 leading-relaxed font-medium">
-                        Controle simplificado de empresas, documentos e usuários em uma plataforma moderna, intuitiva e totalmente isolada.
-                    </p>
-                </div>
-
-                {/* Card de Login Integrado */}
-                <div className="w-full max-w-md bg-white p-8 rounded-3xl shadow-2xl shadow-indigo-900/5 border border-slate-100 relative">
-                    <div className="absolute -top-6 -right-6 w-24 h-24 bg-gradient-to-br from-indigo-400 to-cyan-400 rounded-full blur-2xl opacity-40 pointer-events-none"></div>
-                    <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-gradient-to-br from-blue-400 to-indigo-600 rounded-full blur-2xl opacity-30 pointer-events-none"></div>
-
-                    <div className="relative z-10">
-                        <h3 className="text-2xl font-bold text-slate-900 mb-2">Acesse sua conta</h3>
-                        <p className="text-slate-500 text-sm mb-8 font-medium">Insira suas credenciais para gerenciar sua organização.</p>
-
-                        <form className="space-y-5">
-                            {erro && <div className="p-3 bg-rose-50 border border-rose-100 text-rose-700 rounded-xl text-sm text-center font-medium animate-in fade-in zoom-in duration-200">{erro}</div>}
-
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Email</label>
-                                <input
-                                    type="email"
-                                    placeholder="voce@empresa.com"
-                                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl shadow-sm outline-none transition-all font-medium text-slate-900"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    required
-                                />
+                {/* Login Card Branco e Simples */}
+                <div className="bg-white px-8 py-10 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.2)] w-full relative">
+                    <form className="space-y-5" onSubmit={(e) => handleLogin(e)}>
+                        {erro && (
+                            <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded text-sm text-center font-medium animate-in fade-in duration-200">
+                                {erro}
                             </div>
+                        )}
 
-                            <div>
-                                <label className="block text-sm font-semibold text-slate-700 mb-1.5 ml-1">Senha</label>
+                        <div>
+                            <input
+                                type="email"
+                                placeholder="E-mail"
+                                className="w-full px-4 py-[14px] bg-slate-50 border border-slate-200 rounded focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors text-slate-800 placeholder-slate-400 text-[15px] shadow-sm"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                disabled={isLoading}
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <div className="relative">
                                 <input
-                                    type="password"
-                                    placeholder="••••••••"
-                                    className="w-full px-4 py-3.5 bg-slate-50 border border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl shadow-sm outline-none transition-all font-medium text-slate-900"
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Senha"
+                                    className="w-full px-4 py-[14px] bg-slate-50 border border-slate-200 rounded focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors text-slate-800 placeholder-slate-400 text-[15px] shadow-sm pr-12"
                                     value={senha}
                                     onChange={(e) => setSenha(e.target.value)}
+                                    disabled={isLoading}
                                     required
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
+                                >
+                                    {showPassword ? <EyeOff strokeWidth={1.5} size={18} /> : <Eye strokeWidth={1.5} size={18} />}
+                                </button>
                             </div>
-
-                            <button
-                                type="button"
-                                onClick={handleLogin}
-                                className="w-full bg-slate-900 text-white font-semibold py-4 rounded-xl hover:bg-indigo-600 hover:shadow-lg hover:shadow-indigo-600/30 transition-all active:scale-[0.98] mt-2"
-                            >
-                                Entrar no Painel
-                            </button>
-                        </form>
-
-                        <div className="mt-6 text-center">
-                            <p className="text-xs text-slate-400 font-medium tracking-wide">
-                                AMBIENTE SEGURO COM ISOLAMENTO DE DADOS
-                            </p>
                         </div>
-                    </div>
+
+                        <div className="pt-3 pb-1">
+                            <button
+                                type="submit"
+                                disabled={isLoading}
+                                className="w-full bg-blue-600 disabled:bg-blue-400 text-white font-medium py-[12px] rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-[15.5px] shadow-md shadow-blue-600/20 active:scale-[0.98]"
+                            >
+                                {isLoading ? <Loader2 size={16} strokeWidth={2.5} className="animate-spin" /> : <Lock size={16} strokeWidth={2.5} />}
+                                {isLoading ? 'ENTRANDO...' : 'ENTRAR'}
+                            </button>
+                        </div>
+
+                        <div className="text-center mt-6">
+                            <a href="#" className="text-[13.5px] text-slate-500 hover:text-blue-600 font-medium transition-colors">
+                                Esqueceu sua senha?
+                            </a>
+                        </div>
+                    </form>
                 </div>
             </main>
 
-            <footer className="text-center py-8 text-slate-400 text-sm font-medium border-t border-slate-200/60 bg-white/50 backdrop-blur-sm">
-                &copy; {new Date().getFullYear()} Solutia SaaS. Todos os direitos reservados.
-            </footer>
+            {/* Footer */}
+            <div className="absolute bottom-8 flex items-center justify-center z-10 w-full">
+                <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
+                    <div className="w-4 h-4 bg-yellow-400 transform rotate-45 rounded-[2px] shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
+                    <span className="text-sm font-medium text-white tracking-wide">
+                        Marca Registrada Solutia Core 2026&copy;
+                    </span>
+                </div>
+            </div>
         </div>
     )
 }

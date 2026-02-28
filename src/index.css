@@ -1,47 +1,13 @@
-/* Reset básico */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@import "tailwindcss";
+
+@theme {
+  --font-geist-sans: "Inter", "Geist", system-ui, sans-serif;
+  --font-geist-mono: "Geist Mono", monospace;
 }
 
-html, body {
+html,
+body {
   font-family: var(--font-geist-sans), sans-serif;
-  background-color: #f9f9f9;
-  color: #111;
-  min-height: 100vh;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-geist-mono), monospace;
-}
-
-input, button {
-  font-family: inherit;
-  padding: 0.5rem 1rem;
-  margin: 0.5rem 0;
-}
-
-button {
-  cursor: pointer;
-  background-color: #0070f3;
-  border: none;
-  color: white;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-button:hover {
-  background-color: #0059c1;
-}
-
-div {
-  padding: 1rem;
-}
-
-pre {
-  background-color: #eee;
-  padding: 1rem;
-  border-radius: 6px;
-  overflow-x: auto;
+  background-color: #f8fafc;
+  color: #0f172a;
 }
