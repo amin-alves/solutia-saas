@@ -13,17 +13,14 @@ interface Documento {
 export default function DocumentosPage() {
     const [busca, setBusca] = useState("")
     const [documentos, setDocumentos] = useState<Documento[]>([])
-    const [loading, setLoading] = useState(true)
 
     // Ao montar a página, carrega apenas os documentos da empresa logada
     useEffect(() => {
         async function fetchDocumentos() {
-            setLoading(true)
             const empresaId = localStorage.getItem("solutia_empresa_id")
 
             if (!empresaId) {
                 setDocumentos([])
-                setLoading(false)
                 return
             }
 
@@ -38,7 +35,6 @@ export default function DocumentosPage() {
             } else {
                 console.error("Erro ao carregar documentos:", error)
             }
-            setLoading(false)
         }
 
         fetchDocumentos()

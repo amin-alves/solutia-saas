@@ -14,17 +14,14 @@ interface Usuario {
 export default function UsuariosPage() {
     const [busca, setBusca] = useState("")
     const [usuarios, setUsuarios] = useState<Usuario[]>([])
-    const [loading, setLoading] = useState(true)
 
     // Ao montar a página, carrega apenas os usuários da empresa logada
     useEffect(() => {
         async function fetchUsuarios() {
-            setLoading(true)
             const empresaId = localStorage.getItem("solutia_empresa_id")
 
             if (!empresaId) {
                 setUsuarios([])
-                setLoading(false)
                 return
             }
 
@@ -39,7 +36,6 @@ export default function UsuariosPage() {
             } else {
                 console.error("Erro ao carregar usuários:", error)
             }
-            setLoading(false)
         }
 
         fetchUsuarios()
