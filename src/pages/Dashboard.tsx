@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react"
+import FolderTree from "../components/dashboard/FolderTree"
+import BiMetrics from "../components/dashboard/BiMetrics"
+import WorkflowBoard from "../components/dashboard/WorkflowBoard"
 
 export default function Dashboard() {
     const [empresa, setEmpresa] = useState<string | null>(null)
@@ -8,16 +11,42 @@ export default function Dashboard() {
     }, [])
 
     return (
-        <div>
-            <h1 className="text-3xl font-bold text-gray-800">Dashboard</h1>
-            <div className="mt-6 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                <h2 className="text-xl font-semibold text-gray-700">Bem-vindo(a) ao sistema!</h2>
-                <p className="mt-2 text-gray-600 font-medium">
-                    Contexto atual: <span className="text-blue-600">{empresa || "Carregando..."}</span>
-                </p>
-                <p className="mt-4 text-gray-500 text-sm">
-                    Aqui você poderá visualizar os indicadores principais e atalhos rápidos pertinentes a esta organização.
-                </p>
+        <div className="h-[calc(100vh-8rem)] flex flex-col">
+            <div className="mb-6 flex justify-between items-end">
+                <div>
+                    <h1 className="text-2xl font-bold text-slate-800 tracking-tight">Painel de Controle</h1>
+                    <p className="text-slate-500 font-medium">
+                        Ambiente: <span className="text-indigo-600 font-bold">{empresa || "Carregando..."}</span>
+                    </p>
+                </div>
+                <div className="flex gap-3">
+                    <button className="px-4 py-2 bg-white border border-slate-200 text-slate-600 rounded-lg text-sm font-semibold hover:bg-slate-50 transition-colors shadow-sm">
+                        Relatórios
+                    </button>
+                    <button className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors shadow-sm shadow-indigo-600/20">
+                        + Nova Ação
+                    </button>
+                </div>
+            </div>
+
+            {/* Layout Grid Flexível do Dashboard */}
+            <div className="grid grid-cols-1 md:grid-cols-4 lg:grid-cols-12 gap-6 flex-1 min-h-0">
+
+                {/* 1. Árvore de Pastas (Esquerda - 3 colunas) */}
+                <div className="md:col-span-1 lg:col-span-3 h-full min-h-[400px]">
+                    <FolderTree />
+                </div>
+
+                {/* 2. Área de BI / KPIs (Centro - 6 colunas) */}
+                <div className="md:col-span-3 lg:col-span-6 h-full min-h-[400px]">
+                    <BiMetrics />
+                </div>
+
+                {/* 3. Área de Workflow (Direita - 3 colunas) */}
+                <div className="md:col-span-4 lg:col-span-3 h-full min-h-[400px]">
+                    <WorkflowBoard />
+                </div>
+
             </div>
         </div>
     )

@@ -11,6 +11,13 @@ export default function LandingPage() {
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
 
+    // Limpa estados residuais ao montar a página de login para evitar vazamentos de cache
+    useState(() => {
+        localStorage.removeItem("solutia_user")
+        localStorage.removeItem("solutia_empresa_id")
+        localStorage.removeItem("solutia_empresa_nome")
+    })
+
     async function handleLogin(e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) {
         e.preventDefault()
         setErro("")
@@ -35,10 +42,19 @@ export default function LandingPage() {
                 localStorage.setItem("solutia_auth", "true")
                 localStorage.setItem("solutia_user", cleanEmail)
 
-                // Os dados complementares da empresa devem ser puxados depois através da sessão do supabase
-                // ou salvos posteriormente no contexto global após o carregamento da API
-                localStorage.setItem("solutia_empresa_id", "empresa_geral")
-                localStorage.setItem("solutia_empresa_nome", "Agência Logada - Supabase")
+                // Buscar Perfil do Banco
+                const { data: perfilData } = await supabase
+                    .from("perfis")
+                    .select("nome, empresa_id, empresas(nome)")
+                    .eq("id", data.session.user.id)
+                    .single()
+
+                if (perfilData) {
+                    if (perfilData.empresa_id) localStorage.setItem("solutia_empresa_id", perfilData.empresa_id)
+
+                    const empresaRef = perfilData.empresas as unknown as { nome: string } | null;
+                    if (empresaRef?.nome) localStorage.setItem("solutia_empresa_nome", empresaRef.nome)
+                }
 
                 navigate("/dashboard", { replace: true })
             }

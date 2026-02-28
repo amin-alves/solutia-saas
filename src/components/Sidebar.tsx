@@ -34,8 +34,8 @@ export default function Sidebar() {
                         <span className="text-indigo-900 font-black text-xl">S</span>
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold tracking-tight leading-tight">Solutia SaaS</h2>
-                        <p className="text-xs text-indigo-300 font-medium truncate max-w-[150px]">{empresa}</p>
+                        <h2 className="text-xl font-bold tracking-tight leading-tight line-clamp-1">{empresa || "Carregando..."}</h2>
+                        <p className="text-xs text-indigo-300 font-medium truncate max-w-[150px]">Painel Administrativo</p>
                     </div>
                 </div>
 

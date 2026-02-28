@@ -1,18 +1,51 @@
 import { useState, useEffect } from "react"
-import { getDocumentosPorEmpresa, Documento } from "../lib/mockDb"
+import { supabase } from "@/lib/supabase"
+
+interface Documento {
+    id: string;
+    titulo: string;
+    pasta: string;
+    tamanho: string;
+    data: string;
+    empresa_id: string;
+}
 
 export default function DocumentosPage() {
     const [busca, setBusca] = useState("")
     const [documentos, setDocumentos] = useState<Documento[]>([])
+    const [loading, setLoading] = useState(true)
 
     // Ao montar a página, carrega apenas os documentos da empresa logada
     useEffect(() => {
-        const empresaId = localStorage.getItem("solutia_empresa_id")
-        setDocumentos(getDocumentosPorEmpresa(empresaId))
+        async function fetchDocumentos() {
+            setLoading(true)
+            const empresaId = localStorage.getItem("solutia_empresa_id")
+
+            if (!empresaId) {
+                setDocumentos([])
+                setLoading(false)
+                return
+            }
+
+            // Carrega os documentos reais do banco mapeados à mesma empresa
+            const { data, error } = await supabase
+                .from("documentos")
+                .select("*")
+                .eq("empresa_id", empresaId)
+
+            if (!error && data) {
+                setDocumentos(data as Documento[])
+            } else {
+                console.error("Erro ao carregar documentos:", error)
+            }
+            setLoading(false)
+        }
+
+        fetchDocumentos()
     }, [])
 
     const documentosFiltrados = documentos.filter((doc) =>
-        doc.titulo.toLowerCase().includes(busca.toLowerCase()) || doc.pasta.toLowerCase().includes(busca.toLowerCase())
+        doc.titulo?.toLowerCase().includes(busca.toLowerCase()) || doc.pasta?.toLowerCase().includes(busca.toLowerCase())
     )
 
     return (

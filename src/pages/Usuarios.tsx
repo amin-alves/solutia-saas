@@ -1,18 +1,53 @@
 import { useState, useEffect } from "react"
-import { getUsuariosPorEmpresa, Usuario } from "../lib/mockDb"
+import { supabase } from "@/lib/supabase"
+
+interface Usuario {
+    id: string;
+    nome: string;
+    email: string;
+    role: string;
+    status: string;
+    empresa_id: string;
+    authObject?: { email: string };
+}
 
 export default function UsuariosPage() {
     const [busca, setBusca] = useState("")
     const [usuarios, setUsuarios] = useState<Usuario[]>([])
+    const [loading, setLoading] = useState(true)
 
     // Ao montar a página, carrega apenas os usuários da empresa logada
     useEffect(() => {
-        const empresaId = localStorage.getItem("solutia_empresa_id")
-        setUsuarios(getUsuariosPorEmpresa(empresaId))
+        async function fetchUsuarios() {
+            setLoading(true)
+            const empresaId = localStorage.getItem("solutia_empresa_id")
+
+            if (!empresaId) {
+                setUsuarios([])
+                setLoading(false)
+                return
+            }
+
+            // Busca os perfis que pertencem à mesma empresa do usuário logado
+            const { data, error } = await supabase
+                .from("perfis")
+                .select("*")
+                .eq("empresa_id", empresaId)
+
+            if (!error && data) {
+                setUsuarios(data as Usuario[])
+            } else {
+                console.error("Erro ao carregar usuários:", error)
+            }
+            setLoading(false)
+        }
+
+        fetchUsuarios()
     }, [])
 
     const usuariosFiltrados = usuarios.filter((usuario) =>
-        usuario.nome.toLowerCase().includes(busca.toLowerCase()) || usuario.email.toLowerCase().includes(busca.toLowerCase())
+        usuario.nome?.toLowerCase().includes(busca.toLowerCase()) ||
+        usuario.email?.toLowerCase().includes(busca.toLowerCase()) || ""
     )
 
     return (

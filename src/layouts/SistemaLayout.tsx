@@ -21,10 +21,41 @@ export default function SistemaLayout() {
             }
 
             if (isMounted) {
-                setUser(session.user.email ?? "Usuário")
-                // Recuperamos o nome da empresa do localStorage enquanto não integramos as tabelas
-                const nomeEmpresa = localStorage.getItem("solutia_empresa_nome")
-                setEmpresa(nomeEmpresa || "Empresa Desconhecida")
+                // Busca o perfil e a empresa vinculada do usuário usando auth
+                const { data: perfilData, error } = await supabase
+                    .from("perfis")
+                    .select("nome, empresa_id, empresas(nome)")
+                    .eq("id", session.user.id)
+                    .single()
+
+                console.log("[DEBUG] Fetch Perfil User:", session.user.id, "->", perfilData, "Erro:", error)
+
+                if (!error && perfilData) {
+                    const empresaRef = perfilData.empresas as unknown as { nome: string } | null;
+                    const nomeEmpresaBanco = empresaRef?.nome || "Sem Empresa Vinculada";
+
+                    setUser(perfilData.nome || session.user.email)
+                    setEmpresa(nomeEmpresaBanco)
+
+                    // Salvar no localStorage temporariamente caso outras rotas antigas precisem
+                    if (perfilData.empresa_id) {
+                        localStorage.setItem("solutia_empresa_id", perfilData.empresa_id)
+                    } else {
+                        localStorage.removeItem("solutia_empresa_id")
+                    }
+
+                    if (empresaRef?.nome) {
+                        localStorage.setItem("solutia_empresa_nome", nomeEmpresaBanco)
+                    } else {
+                        localStorage.removeItem("solutia_empresa_nome")
+                    }
+                } else {
+                    setUser(session.user.email ?? "Usuário")
+                    setEmpresa("Empresa Desconhecida")
+                    localStorage.removeItem("solutia_empresa_id")
+                    localStorage.removeItem("solutia_empresa_nome")
+                }
+
                 setLoading(false)
             }
         }
