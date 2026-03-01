@@ -71,14 +71,14 @@ export default function DocumentosPage() {
         }
     }
 
-    const testGeneratePdf = () => {
+    const testGeneratePdf = async () => {
         try {
             const data = [
                 { id: 1, produto: "Notebook", valor: "R$ 4500,00" },
                 { id: 2, produto: "Monitor", valor: "R$ 1200,00" },
                 { id: 3, produto: "Teclado", valor: "R$ 350,00" }
             ]
-            const blob = generatePdf("Relatório de Vendas", "Este é um relatório gerado automaticamente pelo sistema contendo as vendas recentes e outras informações úteis.", data)
+            const blob = await generatePdf("Relatório de Vendas", "Este é um relatório gerado automaticamente pelo sistema contendo as vendas recentes e outras informações úteis.", data)
             downloadBlob(blob, "relatorio-vendas.pdf")
         } catch (e) {
             console.error(e)
