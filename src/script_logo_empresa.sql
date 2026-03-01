@@ -35,3 +35,20 @@ CREATE POLICY "Exclusao Logos Empresas"
 ON storage.objects FOR DELETE
 TO authenticated
 USING (bucket_id = 'logos_empresas');
+
+-- 4. Permitir que os usuários atualizem o logo_url da SUA PRÓPRIA empresa
+-- É preciso garantir que a tabela `empresas` permite UPDATE se o usuário pertencer a ela
+-- Habilitar RLS na tabela empresas caso ainda não esteja (por padrão devia estar, mas garantimos)
+ALTER TABLE public.empresas ENABLE ROW LEVEL SECURITY;
+
+-- Política de UPDATE na tabela empresas para usuários da mesma empresa
+CREATE POLICY "Atualizacao de Logo por Usuarios da Empresa"
+ON public.empresas FOR UPDATE
+TO authenticated
+USING (
+    id IN (
+        SELECT empresa_id 
+        FROM public.perfis 
+        WHERE id = auth.uid()
+    )
+);
