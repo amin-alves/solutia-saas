@@ -14,6 +14,7 @@ ON CONFLICT (id) DO NOTHING;
 
 -- 3. Configuração de Políticas de Segurança (RLS) para o Bucket 'logos_empresas'
 -- Permite que qualquer usuário autenticado leia as imagens (já que são públicas na UI)
+DROP POLICY IF EXISTS "Leitura Publica Logos" ON storage.objects;
 CREATE POLICY "Leitura Publica Logos"
 ON storage.objects FOR SELECT
 TO authenticated, anon
@@ -21,16 +22,17 @@ USING (bucket_id = 'logos_empresas');
 
 -- Permite que os usuários autenticados da plataforma façam upload e subscrevam
 -- as imagens das suas próprias empresas. (Checagem poderia ser mais restrita ao admin local)
+DROP POLICY IF EXISTS "Upload Logos Empresas" ON storage.objects;
 CREATE POLICY "Upload Logos Empresas"
 ON storage.objects FOR INSERT 
 TO authenticated 
 WITH CHECK (bucket_id = 'logos_empresas');
-
+DROP POLICY IF EXISTS "Atualizacao Logos Empresas" ON storage.objects;
 CREATE POLICY "Atualizacao Logos Empresas"
 ON storage.objects FOR UPDATE
 TO authenticated
 USING (bucket_id = 'logos_empresas');
-
+DROP POLICY IF EXISTS "Exclusao Logos Empresas" ON storage.objects;
 CREATE POLICY "Exclusao Logos Empresas"
 ON storage.objects FOR DELETE
 TO authenticated
@@ -42,6 +44,7 @@ USING (bucket_id = 'logos_empresas');
 ALTER TABLE public.empresas ENABLE ROW LEVEL SECURITY;
 
 -- Política de UPDATE na tabela empresas para usuários da mesma empresa
+DROP POLICY IF EXISTS "Atualizacao de Logo por Usuarios da Empresa" ON public.empresas;
 CREATE POLICY "Atualizacao de Logo por Usuarios da Empresa"
 ON public.empresas FOR UPDATE
 TO authenticated
