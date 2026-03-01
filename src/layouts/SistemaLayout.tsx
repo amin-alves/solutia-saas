@@ -5,10 +5,10 @@ import { Loader2 } from "lucide-react"
 
 export default function SistemaLayout() {
     const navigate = useNavigate()
-    const [user, setUser] = useState<string | null>(null)
-    const [empresa, setEmpresa] = useState<string | null>(null)
-    const [empresaId, setEmpresaId] = useState<string | null>(null)
-    const [logoUrl, setLogoUrl] = useState<string | null>(null)
+    const [user, setUser] = useState<string | null>(localStorage.getItem("solutia_user"))
+    const [empresa, setEmpresa] = useState<string | null>(localStorage.getItem("solutia_empresa_nome"))
+    const [empresaId, setEmpresaId] = useState<string | null>(localStorage.getItem("solutia_empresa_id"))
+    const [logoUrl, setLogoUrl] = useState<string | null>(localStorage.getItem("solutia_empresa_logo"))
     const [loading, setLoading] = useState(true)
     const [isUploading, setIsUploading] = useState(false)
     const fileInputRef = useRef<HTMLInputElement>(null)
