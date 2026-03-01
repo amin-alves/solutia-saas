@@ -37,3 +37,44 @@ TO authenticated
 USING (
     empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
 );
+
+-- ==============================================================================
+-- 🚀 COMPLEMENTO FASE 6: CORREÇÃO DE PERMISSÕES DA TABELA DE VERSÕES
+-- ==============================================================================
+-- As regras abaixo permitem que as versões dos documentos também sejam enviadas (Erro 403 / 404 final)
+
+-- 6. Política: Usuários logados podem INSERIR versões de documentos
+CREATE POLICY "Insercao de versoes da propria empresa"
+ON public.documento_versoes FOR INSERT
+TO authenticated
+WITH CHECK (
+    EXISTS (
+        SELECT 1 FROM public.documentos d
+        WHERE d.id = documento_id 
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    )
+);
+
+-- 7. Política: Usuários logados podem ATUALIZAR versões de documentos
+CREATE POLICY "Atualizacao de versoes da propria empresa"
+ON public.documento_versoes FOR UPDATE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM public.documentos d
+        WHERE d.id = documento_id 
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    )
+);
+
+-- 8. Política: Usuários logados podem DELETAR versões de documentos
+CREATE POLICY "Delecao de versoes da propria empresa"
+ON public.documento_versoes FOR DELETE
+TO authenticated
+USING (
+    EXISTS (
+        SELECT 1 FROM public.documentos d
+        WHERE d.id = documento_id 
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    )
+);
