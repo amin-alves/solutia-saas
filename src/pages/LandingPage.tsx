@@ -157,7 +157,7 @@ export default function LandingPage() {
                 <div className="flex items-center gap-2 opacity-80 hover:opacity-100 transition-opacity">
                     <div className="w-4 h-4 bg-yellow-400 transform rotate-45 rounded-[2px] shadow-[0_0_10px_rgba(250,204,21,0.5)]"></div>
                     <span className="text-sm font-medium text-white tracking-wide">
-                        Marca Registrada Solutia Core 2026&copy;
+                        Solutia Core 2026&copy;
                     </span>
                 </div>
             </div>
