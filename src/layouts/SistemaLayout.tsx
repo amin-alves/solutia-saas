@@ -28,7 +28,7 @@ export default function SistemaLayout() {
                     .eq("id", session.user.id)
                     .single()
 
-                console.log("[DEBUG] Fetch Perfil User:", session.user.id, "->", perfilData, "Erro:", error)
+
 
                 if (!error && perfilData) {
                     const empresaRef = perfilData.empresas as unknown as { nome: string } | null;

@@ -47,39 +47,61 @@ export default function FolderTree() {
             if (error) throw error
 
             if (data) {
-                // Constroi arvore agrupando pela coluna 'pasta'
+                // Constrói árvore aninhada agrupando pela coluna 'pasta' separada por '/'
                 const foldersMap = new Map<string, TreeNode>()
                 const uniqueFolders = new Set<string>()
                 let fCount = 0
 
-                data.forEach((doc: Documento) => {
-                    uniqueFolders.add(doc.pasta)
-
-                    if (!foldersMap.has(doc.pasta)) {
-                        foldersMap.set(doc.pasta, {
-                            id: `folder-${doc.pasta}`,
-                            name: doc.pasta,
-                            type: "folder",
-                            children: []
-                        })
-                        fCount++
+                // Função auxiliar para obter ou criar um nó e todos os seus pais
+                const getOrCreateNode = (fullPath: string): TreeNode => {
+                    if (foldersMap.has(fullPath)) {
+                        return foldersMap.get(fullPath)!
                     }
 
-                    foldersMap.get(doc.pasta)?.children?.push({
+                    const parts = fullPath.split('/')
+                    const name = parts[parts.length - 1]
+
+                    const newNode: TreeNode = {
+                        id: `folder-${fullPath}`,
+                        name: name,
+                        type: "folder",
+                        children: []
+                    }
+
+                    foldersMap.set(fullPath, newNode)
+                    uniqueFolders.add(fullPath)
+                    fCount++
+
+                    // Se não é a raiz, vincula ao pai
+                    if (parts.length > 1) {
+                        const parentPath = parts.slice(0, -1).join('/')
+                        const parentNode = getOrCreateNode(parentPath)
+                        parentNode.children!.push(newNode)
+                    }
+
+                    return newNode
+                }
+
+                data.forEach((doc: Documento) => {
+                    const parentNode = getOrCreateNode(doc.pasta)
+
+                    parentNode.children!.push({
                         id: `file-${doc.id}`,
                         name: doc.titulo,
                         type: "file"
                     })
                 })
 
-                const tree = Array.from(foldersMap.values())
+                // A árvore final conterá apenas os nós raízes (que não têm '/' no nome)
+                const tree = Array.from(foldersMap.values()).filter(node => !node.id.replace('folder-', '').includes('/'))
+
                 setTreeData(tree)
                 setFolderCount(fCount)
                 setExistingFolders(Array.from(uniqueFolders))
 
                 // Expande TODAS as pastas por padrão
                 const initialExpanded: Record<string, boolean> = {}
-                tree.forEach(node => {
+                Array.from(foldersMap.values()).forEach(node => {
                     initialExpanded[node.id] = true
                 })
                 setExpandedFolders(initialExpanded)
