@@ -44,6 +44,28 @@ export const generatePdf = async (title: string, description: string, data?: any
         }
     }
 
+    const empresaNome = localStorage.getItem("solutia_empresa_nome") || "Empresa Desconhecida";
+    const empresaCnpj = localStorage.getItem("solutia_empresa_cnpj");
+    const userName = localStorage.getItem("solutia_user") || "Usuário";
+    const userCargo = localStorage.getItem("solutia_user_cargo");
+    const userCpf = localStorage.getItem("solutia_user_cpf");
+    const userRegistro = localStorage.getItem("solutia_user_registro");
+
+    // Adiciona Nome e CNPJ da empresa no cabeçalho
+    doc.setFontSize(14);
+    doc.setFont("helvetica", "bold");
+    doc.text(empresaNome, 14, currentY);
+    currentY += 6;
+
+    if (empresaCnpj) {
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`CNPJ: ${empresaCnpj}`, 14, currentY);
+        currentY += 6;
+    }
+
+    currentY += 4; // Espaçamento extra antes do título do doc
+
     // Adiciona o Título (negrito simulado ajustando a fonte)
     doc.setFontSize(22);
     doc.setFont("helvetica", "bold");
@@ -76,6 +98,43 @@ export const generatePdf = async (title: string, description: string, data?: any
             theme: 'striped',
             headStyles: { fillColor: [79, 70, 229] }, // indigo-600
         });
+
+        // Pega o Y final que a tabela ocupou
+        const finalTableY = (doc as any).lastAutoTable.finalY + 15;
+        finalY = finalTableY > finalY ? finalTableY : finalY;
+    }
+
+    // Adiciona Bloco de Assinatura / Rodapé
+    // Checa se vai quebrar a página, e cria uma nova se precisar
+    if (finalY > 250) {
+        doc.addPage();
+        finalY = 20;
+    } else {
+        finalY += 20;
+    }
+
+    doc.line(14, finalY, 80, finalY); // Linha para assinar
+    finalY += 6;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.text(userName, 14, finalY);
+
+    finalY += 5;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+
+    if (userCargo) {
+        doc.text(userCargo, 14, finalY);
+        finalY += 5;
+    }
+
+    let docIdText = [];
+    if (userCpf) docIdText.push(`CPF: ${userCpf}`);
+    if (userRegistro) docIdText.push(userRegistro);
+
+    if (docIdText.length > 0) {
+        doc.text(docIdText.join(" | "), 14, finalY);
     }
 
     // Retorna a saída como Blob
