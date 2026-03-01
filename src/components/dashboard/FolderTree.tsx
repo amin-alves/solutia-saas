@@ -167,7 +167,8 @@ export default function FolderTree() {
                     empresa_id: empresaId,
                     titulo: uploadFile.name,
                     pasta: uploadPasta.trim(),
-                    tamanho: formatBytes(uploadFile.size)
+                    tamanho: formatBytes(uploadFile.size),
+                    data: new Date().toLocaleDateString('pt-BR')
                 })
                 .select()
                 .single()
