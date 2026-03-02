@@ -3,7 +3,7 @@ import { supabase } from "@/lib/supabase"
 import { generateDocx } from "@/services/documents/docxGenerator"
 import { generateXlsx } from "@/services/documents/xlsxGenerator"
 import { generatePdf } from "@/services/documents/pdfGenerator"
-import { ChevronDown, FileText, FileSpreadsheet, FileIcon, Upload } from "lucide-react"
+import { ChevronDown, FileText, FileSpreadsheet, FileIcon, Upload, X, Save } from "lucide-react"
 
 interface Documento {
     id: string;
@@ -19,6 +19,12 @@ export default function DocumentosPage() {
     const [documentos, setDocumentos] = useState<Documento[]>([])
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
+
+    // Editor Modal States
+    const [isEditorOpen, setIsEditorOpen] = useState(false)
+    const [editorTitle, setEditorTitle] = useState("Novo Documento")
+    const [editorFolder, setEditorFolder] = useState("Geral")
+    const [editorContent, setEditorContent] = useState("")
 
     // Fechar menu ao clicar fora
     useEffect(() => {
@@ -42,15 +48,49 @@ export default function DocumentosPage() {
         URL.revokeObjectURL(url);
     }
 
-    const testGenerateDocx = async () => {
+    const openEditor = () => {
+        setEditorTitle("Novo Documento")
+        setEditorFolder("Geral")
+        setEditorContent("")
+        setIsEditorOpen(true)
+        setIsMenuOpen(false)
+    }
+
+    const handleSaveDocument = async () => {
+        if (!editorTitle.trim() || !editorContent.trim()) {
+            alert("Preencha o título e o conteúdo do documento.")
+            return;
+        }
+
         try {
-            const blob = await generateDocx("Contrato de Prestação de Serviços", "Este é um contrato de exemplo gerado dinamicamente pelo sistema Solutia.")
-            downloadBlob(blob, "contrato-padrao.docx")
+            // Gerar o DOCX a partir do texto/HTML simples
+            const blob = await generateDocx(editorTitle, editorContent);
+            const sizeInKb = (blob.size / 1024).toFixed(1) + " KB";
+
+            const empresaId = localStorage.getItem("solutia_empresa_id");
+            if (empresaId) {
+                // Inserir metadados no Supabase (mockando o arquivo salvo na nuvem)
+                const novoDoc = {
+                    titulo: editorTitle,
+                    pasta: editorFolder,
+                    tamanho: sizeInKb,
+                    data: new Date().toLocaleDateString("pt-BR"),
+                    empresa_id: empresaId
+                };
+
+                const { data, error } = await supabase.from("documentos").insert([novoDoc]).select();
+
+                if (!error && data && data.length > 0) {
+                    setDocumentos(prev => [...prev, data[0] as Documento]);
+                }
+            }
+
+            // Realizar download do arquivo convertido
+            downloadBlob(blob, `${editorTitle.replace(/\s+/g, "_").toLowerCase()}.docx`);
+            setIsEditorOpen(false);
         } catch (e) {
-            console.error(e)
-            alert("Erro ao gerar DOCX")
-        } finally {
-            setIsMenuOpen(false)
+            console.error(e);
+            alert("Erro ao salvar documento.");
         }
     }
 
@@ -152,11 +192,11 @@ export default function DocumentosPage() {
                                     Gerar Planilha (XLSX)
                                 </button>
                                 <button
-                                    onClick={testGenerateDocx}
+                                    onClick={openEditor}
                                     className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-sm text-gray-700 flex items-center gap-3 transition-colors"
                                 >
                                     <FileIcon className="w-4 h-4 text-blue-600" />
-                                    Gerar Contrato (DOCX)
+                                    Criar Documento (DOCX)
                                 </button>
                             </div>
                         )}
@@ -221,6 +261,82 @@ export default function DocumentosPage() {
                     </table>
                 </div>
             </div>
+
+            {/* Modal Editor Simplificado */}
+            {isEditorOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
+                                    <FileIcon className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-800">Editor de Documentos</h2>
+                                    <p className="text-xs text-gray-500">Crie seu documento e ele será convertido para DOCX.</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsEditorOpen(false)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                <X className="w-6 h-6" />
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
+                            <div className="flex flex-col md:flex-row gap-5">
+                                <div className="flex-1">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Título do Documento</label>
+                                    <input
+                                        type="text"
+                                        value={editorTitle}
+                                        onChange={(e) => setEditorTitle(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none transition-all placeholder:text-gray-300 font-medium"
+                                        placeholder="Ex: Contrato de Prestação de Serviços..."
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="w-full md:w-72">
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Pasta / Categoria</label>
+                                    <select
+                                        value={editorFolder}
+                                        onChange={(e) => setEditorFolder(e.target.value)}
+                                        className="w-full px-4 py-2.5 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none bg-white transition-all text-gray-700"
+                                    >
+                                        <option value="Geral">Geral</option>
+                                        <option value="Contratos">Contratos</option>
+                                        <option value="RH">RH / Departamento Pessoal</option>
+                                        <option value="Financeiro">Financeiro</option>
+                                        <option value="Propostas">Propostas</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex-1 flex flex-col min-h-[350px]">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Conteúdo do Documento</label>
+                                <textarea
+                                    value={editorContent}
+                                    onChange={(e) => setEditorContent(e.target.value)}
+                                    placeholder="Escreva o conteúdo do seu documento aqui. O texto será incluído no DOCX gerado..."
+                                    className="w-full flex-1 p-5 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none resize-none font-sans text-[15px] leading-relaxed text-gray-700 shadow-inner"
+                                ></textarea>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
+                            <button
+                                onClick={() => setIsEditorOpen(false)}
+                                className="px-5 py-2.5 rounded-xl font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm"
+                            >
+                                Cancelar
+                            </button>
+                            <button
+                                onClick={handleSaveDocument}
+                                className="px-5 py-2.5 rounded-xl font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/30 transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20"
+                            >
+                                <Save className="w-4 h-4" />
+                                Salvar e Baixar DOCX
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }
