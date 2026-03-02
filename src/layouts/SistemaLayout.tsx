@@ -307,28 +307,35 @@ export default function SistemaLayout() {
                     </div>
 
                     {/* Edição Inline do Nome da Empresa */}
-                    {isEditingEmpresa ? (
-                        <input
-                            autoFocus
-                            type="text"
-                            value={tempEmpresa}
-                            onChange={(e) => setTempEmpresa(e.target.value)}
-                            onBlur={handleUpdateEmpresa}
-                            onKeyDown={(e) => e.key === 'Enter' && handleUpdateEmpresa()}
-                            className="text-lg font-semibold text-gray-700 border-b-2 border-indigo-500 outline-none bg-indigo-50 px-1 py-0.5"
-                        />
-                    ) : (
-                        <h1
-                            className="text-lg font-semibold text-gray-700 cursor-text hover:bg-gray-50 px-1 py-0.5 rounded transition-colors title-edit-hover"
-                            title="Clique para editar o nome da empresa"
-                            onClick={() => {
-                                setTempEmpresa(empresa || "");
-                                setIsEditingEmpresa(true);
-                            }}
-                        >
-                            {empresa ? `Painel - ${empresa}` : "Sistema de Gestão"}
-                        </h1>
-                    )}
+                    <div className="flex flex-col justify-center">
+                        {isEditingEmpresa ? (
+                            <input
+                                autoFocus
+                                type="text"
+                                value={tempEmpresa}
+                                onChange={(e) => setTempEmpresa(e.target.value)}
+                                onBlur={handleUpdateEmpresa}
+                                onKeyDown={(e) => e.key === 'Enter' && handleUpdateEmpresa()}
+                                className="text-lg font-semibold text-gray-700 border-b-2 border-indigo-500 outline-none bg-indigo-50 px-1 py-0.5"
+                            />
+                        ) : (
+                            <h1
+                                className="text-lg font-semibold text-gray-700 cursor-text hover:bg-gray-50 px-1 py-0.5 rounded transition-colors title-edit-hover leading-tight"
+                                title="Clique para editar o nome da empresa"
+                                onClick={() => {
+                                    setTempEmpresa(empresa || "");
+                                    setIsEditingEmpresa(true);
+                                }}
+                            >
+                                {empresa ? empresa : "Sistema de Gestão"}
+                            </h1>
+                        )}
+                        {empresaCnpj && !isEditingEmpresa && (
+                            <span className="text-xs text-slate-500 font-medium px-1 mt-0.5">
+                                CNPJ: {empresaCnpj}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-5">
