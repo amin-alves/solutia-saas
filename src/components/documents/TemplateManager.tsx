@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { RichTextEditor } from './RichTextEditor'
+
 import { Plus, Edit2, Trash2, Save, X, FileText } from 'lucide-react'
 
 interface Template {
@@ -159,11 +159,14 @@ export function TemplateManager({ empresaId, onSelectTemplate }: TemplateManager
 
                 <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Conteúdo do Modelo *
+                        Conteúdo do Modelo (HTML) *
                     </label>
-                    <RichTextEditor
-                        content={currentTemplate?.conteudo_html || ''}
-                        onChange={(html) => setCurrentTemplate(prev => ({ ...prev, conteudo_html: html }))}
+                    <textarea
+                        value={currentTemplate?.conteudo_html || ''}
+                        onChange={(e) => setCurrentTemplate(prev => ({ ...prev, conteudo_html: e.target.value }))}
+                        rows={12}
+                        className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-md focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-white font-mono text-sm"
+                        placeholder="Cole o conteúdo HTML do template aqui..."
                     />
                 </div>
             </div>

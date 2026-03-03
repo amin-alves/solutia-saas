@@ -1,8 +1,9 @@
 import { useEffect, useState, useRef } from "react"
-import { useNavigate, Outlet } from "react-router-dom"
+import { useNavigate, Outlet, Link, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
-import { Loader2, Settings } from "lucide-react"
+import { Loader2, Settings, LayoutDashboard, Users, FolderOpen } from "lucide-react"
 import ConfigModal from "../components/dashboard/ConfigModal"
+import { ChatWidget } from "../components/ChatWidget"
 
 export default function SistemaLayout() {
     const navigate = useNavigate()
@@ -260,7 +261,7 @@ export default function SistemaLayout() {
     if (loading) return null
 
     return (
-        <div className="flex-1 flex flex-col min-h-screen bg-gray-100">
+        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
 
             {showConfigModal && empresaId && perfilId && (
                 <ConfigModal
@@ -274,7 +275,7 @@ export default function SistemaLayout() {
                 />
             )}
 
-            <header className="bg-white shadow px-8 py-4 flex justify-between items-center">
+            <header className="bg-white shadow px-8 py-3 flex justify-between items-center shrink-0 sticky top-0 z-30">
                 <div className="flex items-center gap-3">
                     <div
                         className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -336,6 +337,13 @@ export default function SistemaLayout() {
                             </span>
                         )}
                     </div>
+
+                    {/* Navegação */}
+                    <nav className="flex items-center gap-1 ml-6 border-l border-gray-200 pl-6">
+                        <NavLink to="/dashboard" icon={<LayoutDashboard size={16} />} label="Dashboard" />
+                        <NavLink to="/documentos" icon={<FolderOpen size={16} />} label="Documentos" />
+                        <NavLink to="/usuarios" icon={<Users size={16} />} label="Usuários" />
+                    </nav>
                 </div>
 
                 <div className="flex items-center gap-5">
@@ -414,10 +422,38 @@ export default function SistemaLayout() {
                 </div>
             </header>
 
-            <main className="flex-1 p-8">
+            <main className="flex-1 overflow-y-auto p-8">
                 <Outlet />
             </main>
 
+            {/* Footer fixo */}
+            <footer className="bg-white border-t border-gray-200 px-8 py-2 flex items-center justify-between shrink-0 sticky bottom-0 z-30">
+                <span className="text-xs text-gray-400">© {new Date().getFullYear()} Solutia — Sistema de Gestão</span>
+                <span className="text-xs text-gray-400">v1.0.0</span>
+            </footer>
+
+            {/* Chat Widget Popup */}
+            <ChatWidget />
+
         </div>
+    )
+}
+
+function NavLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
+    const location = useLocation()
+    const isActive = location.pathname === to || location.pathname.startsWith(to + '/')
+
+    return (
+        <Link
+            to={to}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
+                ${isActive
+                    ? 'bg-indigo-50 text-indigo-700'
+                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
+                }`}
+        >
+            {icon}
+            {label}
+        </Link>
     )
 }
