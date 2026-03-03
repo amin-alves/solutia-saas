@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 @theme {
   --font-geist-sans: "Inter", "Geist", system-ui, sans-serif;

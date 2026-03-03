@@ -1,9 +1,12 @@
 import { useState, useEffect, useRef } from "react"
 import { supabase } from "@/lib/supabase"
-import { generateDocx } from "@/services/documents/docxGenerator"
 import { generateXlsx } from "@/services/documents/xlsxGenerator"
 import { generatePdf } from "@/services/documents/pdfGenerator"
-import { ChevronDown, FileText, FileSpreadsheet, FileIcon, Upload, X, Save } from "lucide-react"
+import { ChevronDown, FileText, FileSpreadsheet, FileIcon, Upload, Edit3 } from "lucide-react"
+
+import { TemplateManager } from "@/components/documents/TemplateManager"
+import { DocumentEditor } from "@/components/documents/DocumentEditor"
+import { LocalSyncManager } from "@/components/documents/LocalSyncManager"
 
 interface Documento {
     id: string;
@@ -12,19 +15,23 @@ interface Documento {
     tamanho: string;
     data: string;
     empresa_id: string;
+    status?: 'rascunho' | 'finalizado';
+    versao_atual?: number;
+    created_at?: string;
 }
 
 export default function DocumentosPage() {
+    const [activeTab, setActiveTab] = useState<'documentos' | 'modelos'>('documentos')
     const [busca, setBusca] = useState("")
     const [documentos, setDocumentos] = useState<Documento[]>([])
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const menuRef = useRef<HTMLDivElement>(null)
+    const empresaId = localStorage.getItem("solutia_empresa_id") || ''
 
-    // Editor Modal States
+    // New Editor States
     const [isEditorOpen, setIsEditorOpen] = useState(false)
-    const [editorTitle, setEditorTitle] = useState("Novo Documento")
-    const [editorFolder, setEditorFolder] = useState("Geral")
-    const [editorContent, setEditorContent] = useState("")
+    const [editorTemplate, setEditorTemplate] = useState<any>(null)
+    const [editingDocId, setEditingDocId] = useState<string | null>(null)
 
     // Fechar menu ao clicar fora
     useEffect(() => {
@@ -49,50 +56,20 @@ export default function DocumentosPage() {
     }
 
     const openEditor = () => {
-        setEditorTitle("Novo Documento")
-        setEditorFolder("Geral")
-        setEditorContent("")
+        setEditorTemplate(null)
+        setEditingDocId(null)
         setIsEditorOpen(true)
         setIsMenuOpen(false)
     }
 
-    const handleSaveDocument = async () => {
-        if (!editorTitle.trim() || !editorContent.trim()) {
-            alert("Preencha o título e o conteúdo do documento.")
-            return;
-        }
-
-        try {
-            // Gerar o DOCX a partir do texto/HTML simples
-            const blob = await generateDocx(editorTitle, editorContent);
-            const sizeInKb = (blob.size / 1024).toFixed(1) + " KB";
-
-            const empresaId = localStorage.getItem("solutia_empresa_id");
-            if (empresaId) {
-                // Inserir metadados no Supabase (mockando o arquivo salvo na nuvem)
-                const novoDoc = {
-                    titulo: editorTitle,
-                    pasta: editorFolder,
-                    tamanho: sizeInKb,
-                    data: new Date().toLocaleDateString("pt-BR"),
-                    empresa_id: empresaId
-                };
-
-                const { data, error } = await supabase.from("documentos").insert([novoDoc]).select();
-
-                if (!error && data && data.length > 0) {
-                    setDocumentos(prev => [...prev, data[0] as Documento]);
-                }
-            }
-
-            // Realizar download do arquivo convertido
-            downloadBlob(blob, `${editorTitle.replace(/\s+/g, "_").toLowerCase()}.docx`);
-            setIsEditorOpen(false);
-        } catch (e) {
-            console.error(e);
-            alert("Erro ao salvar documento.");
-        }
+    const openEditorWithTemplate = (template: any) => {
+        setEditorTemplate(template)
+        setEditingDocId(null)
+        setIsEditorOpen(true)
     }
+
+
+    // Removed old handleSaveDocument handler as it's now internal to DocumentEditor
 
     const testGenerateXlsx = async () => {
         try {
@@ -162,180 +139,228 @@ export default function DocumentosPage() {
         <div className="space-y-6">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-5">
                 <div>
-                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">Armazém de Documentos</h1>
-                    <p className="text-gray-500 mt-1">Gerencie os arquivos da sua organização com segurança.</p>
+                    <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight dark:text-white">Gerenciador de Documentos</h1>
+                    <p className="text-gray-500 mt-1 dark:text-gray-400">Crie, gerencie e versione os arquivos e contratos da sua organização.</p>
                 </div>
-                <div className="flex gap-3 mt-4 md:mt-0 items-center">
-                    <div className="relative" ref={menuRef}>
-                        <button
-                            onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className="flex items-center gap-2 bg-white border border-gray-200 text-gray-700 px-5 py-2.5 rounded-xl font-medium hover:bg-gray-50 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm"
-                        >
-                            Gerar Documento
-                            <ChevronDown className="w-4 h-4 text-gray-500" />
-                        </button>
-
-                        {isMenuOpen && (
-                            <div className="absolute right-0 mt-2 w-56 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50">
-                                <button
-                                    onClick={testGeneratePdf}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-sm text-gray-700 flex items-center gap-3 transition-colors"
-                                >
-                                    <FileText className="w-4 h-4 text-red-500" />
-                                    Gerar Relatório (PDF)
-                                </button>
-                                <button
-                                    onClick={testGenerateXlsx}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-sm text-gray-700 flex items-center gap-3 transition-colors"
-                                >
-                                    <FileSpreadsheet className="w-4 h-4 text-green-600" />
-                                    Gerar Planilha (XLSX)
-                                </button>
-                                <button
-                                    onClick={openEditor}
-                                    className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 text-sm text-gray-700 flex items-center gap-3 transition-colors"
-                                >
-                                    <FileIcon className="w-4 h-4 text-blue-600" />
-                                    Criar Documento (DOCX)
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
-                    <button className="bg-indigo-600 shadow-lg shadow-indigo-600/30 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center gap-2">
-                        <Upload className="w-4 h-4" />
-                        Enviar Arquivo
-                    </button>
-                </div>
-            </div>
-
-            <div className="relative max-w-md">
-                <input
-                    type="text"
-                    placeholder="Buscar por título ou pasta..."
-                    className="w-full pl-4 pr-10 py-3 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl shadow-sm outline-none transition-all"
-                    value={busca}
-                    onChange={(e) => setBusca(e.target.value)}
-                />
-            </div>
-
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead className="bg-gray-50/50 border-b border-gray-100">
-                            <tr>
-                                <th className="p-4 text-sm font-semibold text-gray-600">Documento</th>
-                                <th className="p-4 text-sm font-semibold text-gray-600">Pasta / Categoria</th>
-                                <th className="p-4 text-sm font-semibold text-gray-600">Tamanho</th>
-                                <th className="p-4 text-sm font-semibold text-gray-600 text-right">Data de Envio</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-50">
-                            {documentosFiltrados.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="p-8 text-center text-gray-500">
-                                        Nenhum documento encontrado na sua empresa.
-                                    </td>
-                                </tr>
-                            ) : null}
-
-                            {documentosFiltrados.map((doc) => (
-                                <tr
-                                    key={doc.id}
-                                    className="hover:bg-indigo-50/30 transition-colors group cursor-pointer"
-                                >
-                                    <td className="p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-10 h-10 rounded-lg bg-indigo-100 flex items-center justify-center text-indigo-600 shrink-0">
-                                                📄
-                                            </div>
-                                            <span className="font-medium text-gray-900 group-hover:text-indigo-700 transition-colors">{doc.titulo}</span>
-                                        </div>
-                                    </td>
-                                    <td className="p-4 text-gray-600">{doc.pasta}</td>
-                                    <td className="p-4 text-gray-500 text-sm">{doc.tamanho}</td>
-                                    <td className="p-4 text-gray-500 text-sm font-medium text-right">{doc.data}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-
-            {/* Modal Editor Simplificado */}
-            {isEditorOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                        <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg">
-                                    <FileIcon className="w-5 h-5" />
-                                </div>
-                                <div>
-                                    <h2 className="text-xl font-bold text-gray-800">Editor de Documentos</h2>
-                                    <p className="text-xs text-gray-500">Crie seu documento e ele será convertido para DOCX.</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setIsEditorOpen(false)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
-                                <X className="w-6 h-6" />
+                {activeTab === 'documentos' && (
+                    <div className="flex gap-3 mt-4 md:mt-0 items-center">
+                        <div className="relative" ref={menuRef}>
+                            <button
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 px-5 py-2.5 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-700 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm"
+                            >
+                                Novo Documento
+                                <ChevronDown className="w-4 h-4 text-gray-500" />
                             </button>
-                        </div>
-                        <div className="p-6 overflow-y-auto flex-1 flex flex-col gap-6">
-                            <div className="flex flex-col md:flex-row gap-5">
-                                <div className="flex-1">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Título do Documento</label>
-                                    <input
-                                        type="text"
-                                        value={editorTitle}
-                                        onChange={(e) => setEditorTitle(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none transition-all placeholder:text-gray-300 font-medium"
-                                        placeholder="Ex: Contrato de Prestação de Serviços..."
-                                        autoFocus
-                                    />
-                                </div>
-                                <div className="w-full md:w-72">
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Pasta / Categoria</label>
-                                    <select
-                                        value={editorFolder}
-                                        onChange={(e) => setEditorFolder(e.target.value)}
-                                        className="w-full px-4 py-2.5 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none bg-white transition-all text-gray-700"
+
+                            {isMenuOpen && (
+                                <div className="absolute right-0 mt-2 w-56 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-100 dark:border-gray-700 py-2 z-50">
+                                    <button
+                                        onClick={openEditor}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-gray-700 text-sm font-medium text-indigo-700 dark:text-indigo-400 flex items-center gap-3 transition-colors"
                                     >
-                                        <option value="Geral">Geral</option>
-                                        <option value="Contratos">Contratos</option>
-                                        <option value="RH">RH / Departamento Pessoal</option>
-                                        <option value="Financeiro">Financeiro</option>
-                                        <option value="Propostas">Propostas</option>
-                                    </select>
+                                        <Edit3 className="w-4 h-4" />
+                                        Escrever Documento em Branco
+                                    </button>
+                                    <hr className="my-1 border-gray-100 dark:border-gray-700" />
+                                    <button
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            setActiveTab('modelos');
+                                        }}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 flex items-center gap-3 transition-colors"
+                                    >
+                                        <FileIcon className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                                        Criar a partir de Modelo
+                                    </button>
+                                    <hr className="my-1 border-gray-100 dark:border-gray-700" />
+                                    <button
+                                        onClick={testGeneratePdf}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 flex items-center gap-3 transition-colors"
+                                    >
+                                        <FileText className="w-4 h-4 text-red-500" />
+                                        Gerar Relatório Antigo (PDF)
+                                    </button>
+                                    <button
+                                        onClick={testGenerateXlsx}
+                                        className="w-full text-left px-4 py-2.5 hover:bg-indigo-50 dark:hover:bg-gray-700 text-sm text-gray-700 dark:text-gray-200 flex items-center gap-3 transition-colors"
+                                    >
+                                        <FileSpreadsheet className="w-4 h-4 text-green-600" />
+                                        Gerar Planilha Antiga (XLSX)
+                                    </button>
                                 </div>
-                            </div>
-
-                            <div className="flex-1 flex flex-col min-h-[350px]">
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Conteúdo do Documento</label>
-                                <textarea
-                                    value={editorContent}
-                                    onChange={(e) => setEditorContent(e.target.value)}
-                                    placeholder="Escreva o conteúdo do seu documento aqui. O texto será incluído no DOCX gerado..."
-                                    className="w-full flex-1 p-5 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl outline-none resize-none font-sans text-[15px] leading-relaxed text-gray-700 shadow-inner"
-                                ></textarea>
-                            </div>
+                            )}
                         </div>
-                        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50/50 flex justify-end gap-3">
-                            <button
-                                onClick={() => setIsEditorOpen(false)}
-                                className="px-5 py-2.5 rounded-xl font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 hover:border-gray-300 focus:ring-4 focus:ring-gray-100 transition-all shadow-sm"
-                            >
-                                Cancelar
-                            </button>
-                            <button
-                                onClick={handleSaveDocument}
-                                className="px-5 py-2.5 rounded-xl font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/30 transition-all flex items-center gap-2 shadow-lg shadow-indigo-600/20"
-                            >
-                                <Save className="w-4 h-4" />
-                                Salvar e Baixar DOCX
-                            </button>
+
+                        <button className="bg-indigo-600 shadow-lg shadow-indigo-600/30 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center gap-2">
+                            <Upload className="w-4 h-4" />
+                            Enviar Arquivo
+                        </button>
+                    </div>
+                )}
+            </div>
+
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+                <button
+                    onClick={() => setActiveTab('documentos')}
+                    className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'documentos'
+                        ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                        }`}
+                >
+                    <FileText size={18} /> Meus Documentos
+                </button>
+                <button
+                    onClick={() => setActiveTab('modelos')}
+                    className={`px-6 py-3 font-medium text-sm flex items-center gap-2 border-b-2 transition-colors ${activeTab === 'modelos'
+                        ? 'border-indigo-600 text-indigo-600 dark:border-indigo-400 dark:text-indigo-400 bg-indigo-50/50 dark:bg-indigo-900/20'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                        }`}
+                >
+                    <FileIcon size={18} /> Modelos (Templates)
+                </button>
+            </div>
+
+            {activeTab === 'modelos' ? (
+                <div className="animate-in fade-in duration-300">
+                    <TemplateManager
+                        empresaId={empresaId}
+                        onSelectTemplate={openEditorWithTemplate}
+                    />
+                </div>
+            ) : (
+                <div className="space-y-6 animate-in fade-in duration-300">
+                    <LocalSyncManager empresaId={empresaId} />
+
+                    <div className="relative max-w-md">
+                        <input
+                            type="text"
+                            placeholder="Buscar por título ou pasta..."
+                            className="w-full pl-4 pr-10 py-3 border border-gray-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 rounded-xl shadow-sm outline-none transition-all"
+                            value={busca}
+                            onChange={(e) => setBusca(e.target.value)}
+                        />
+                    </div>
+
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-left border-collapse">
+                                <thead className="bg-gray-50/50 border-b border-gray-100 dark:border-gray-700 dark:bg-gray-800/50">
+                                    <tr>
+                                        <th className="p-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Documento</th>
+                                        <th className="p-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Pasta / Categoria</th>
+                                        <th className="p-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Status</th>
+                                        <th className="p-4 text-sm font-semibold text-gray-600 dark:text-gray-300">Tamanho</th>
+                                        <th className="p-4 text-sm font-semibold text-gray-600 dark:text-gray-300 text-right">Data</th>
+                                        <th className="p-4 text-sm font-semibold text-gray-600 dark:text-gray-300 text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-50 dark:divide-gray-700">
+                                    {documentosFiltrados.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={6} className="p-8 text-center text-gray-500 dark:text-gray-400">
+                                                Nenhum documento encontrado.
+                                            </td>
+                                        </tr>
+                                    ) : null}
+
+                                    {documentosFiltrados.map((doc) => (
+                                        <tr
+                                            key={doc.id}
+                                            className="hover:bg-indigo-50/30 dark:hover:bg-gray-800 transition-colors group"
+                                        >
+                                            <td className="p-4">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-10 h-10 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 shrink-0">
+                                                        {doc.status === 'rascunho' ? <Edit3 size={18} /> : <FileText size={18} />}
+                                                    </div>
+                                                    <div className="flex flex-col">
+                                                        <span className="font-medium text-gray-900 dark:text-white group-hover:text-indigo-700 dark:group-hover:text-indigo-400 transition-colors">{doc.titulo}</span>
+                                                        {doc.status === 'finalizado' && (
+                                                            <span className="text-xs text-gray-500 dark:text-gray-400">Versão {doc.versao_atual || 1}</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td className="p-4 text-gray-600 dark:text-gray-300">{doc.pasta}</td>
+                                            <td className="p-4">
+                                                <span className={`px-2 py-1 text-xs font-medium rounded-full ${doc.status === 'rascunho'
+                                                    ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400'
+                                                    : 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+                                                    }`}>
+                                                    {doc.status === 'rascunho' ? 'Rascunho' : 'Finalizado'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-gray-500 dark:text-gray-400 text-sm">{doc.tamanho}</td>
+                                            <td className="p-4 text-gray-500 dark:text-gray-400 text-sm font-medium text-right">
+                                                {new Date(doc.data || doc.created_at || Date.now()).toLocaleDateString('pt-BR')}
+                                            </td>
+                                            <td className="p-4 text-right">
+                                                <div className="flex justify-end gap-2">
+                                                    {doc.status === 'rascunho' ? (
+                                                        <button
+                                                            onClick={() => {
+                                                                setEditingDocId(doc.id)
+                                                                setIsEditorOpen(true)
+                                                            }}
+                                                            className="p-1.5 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors"
+                                                            title="Continuar Editando"
+                                                        >
+                                                            <Edit3 size={18} />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            onClick={async () => {
+                                                                // Como não salvamos o 'tipo' exato aqui na tabela no passado (só rascunho/final), 
+                                                                // por enquanto forçamos .sfdt (Textos) em vez de .html
+                                                                const path = `final/${empresaId}/${doc.id}_v${doc.versao_atual || 1}.sfdt`
+                                                                try {
+                                                                    const { data, error } = await supabase.storage.from('documentos-saas').createSignedUrl(path, 60)
+                                                                    if (error) throw error
+                                                                    window.open(data.signedUrl, '_blank')
+                                                                } catch (e) {
+                                                                    alert('Erro ao gerar link de download. Verifique se o arquivo existe no Storage.')
+                                                                }
+                                                            }}
+                                                            className="p-1.5 text-gray-500 hover:text-indigo-600 dark:text-gray-400 dark:hover:text-indigo-400 transition-colors flex items-center gap-1 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md px-3 hover:bg-white"
+                                                            title="Baixar Documento"
+                                                        >
+                                                            Baixar
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
+            )}
+
+
+            {isEditorOpen && (
+                <DocumentEditor
+                    empresaId={empresaId}
+                    initialTemplate={editorTemplate}
+                    documentoId={editingDocId}
+                    onClose={() => {
+                        setIsEditorOpen(false)
+                        setEditorTemplate(null)
+                        setEditingDocId(null)
+                    }}
+                    onSaved={() => {
+                        // Recarregar os arquivos da lista quando um é salvo
+                        const fetchDocs = async () => {
+                            if (!empresaId) return;
+                            const { data } = await supabase.from("documentos").select("*").eq("empresa_id", empresaId);
+                            if (data) setDocumentos(data as Documento[]);
+                        }
+                        fetchDocs()
+                    }}
+                />
             )}
         </div>
     )

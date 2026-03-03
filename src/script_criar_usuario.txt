@@ -1,0 +1,3 @@
+node --env-file=.env.local 
+scripts/create-user.js 
+amin3@teste.com novasenha
