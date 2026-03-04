@@ -140,6 +140,28 @@ export function EquipeModal({ onClose }: EquipeModalProps) {
         }
     }
 
+    const handleReenviar = async (email: string) => {
+        try {
+            const { error: magicLinkError } = await supabase.auth.signInWithOtp({
+                email: email,
+                options: {
+                    shouldCreateUser: true,
+                    emailRedirectTo: `https://solutia-saas.vercel.app/`
+                },
+            });
+
+            if (magicLinkError) {
+                console.error("Erro ao reenviar Magic Link:", magicLinkError)
+                alert(`Houve um erro ao reenviar o e-mail: ${magicLinkError.message}`)
+            } else {
+                alert(`Sucesso! Um novo Magic Link de convite oficial foi disparado para ${email}.`)
+            }
+        } catch (error: any) {
+            console.error("Erro ao reenviar convite:", error)
+            alert("Erro ao reenviar convite: " + error.message)
+        }
+    }
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-white dark:bg-gray-900 w-full max-w-4xl rounded-2xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden">
@@ -276,6 +298,10 @@ export function EquipeModal({ onClose }: EquipeModalProps) {
                                                 <td className="p-4 text-right">
                                                     {usuario.is_invite ? (
                                                         <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                handleReenviar(usuario.email);
+                                                            }}
                                                             className="text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 font-medium text-sm gap-1 items-center flex justify-end ml-auto"
                                                             title="Reenviar Convite"
                                                         >
