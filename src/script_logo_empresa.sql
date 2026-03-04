@@ -52,6 +52,6 @@ USING (
     id IN (
         SELECT empresa_id 
         FROM public.perfis 
-        WHERE id = auth.uid()
+        WHERE id = (select auth.uid())
     )
 );

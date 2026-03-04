@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase"
 import { Loader2, Settings, LayoutDashboard, Users } from "lucide-react"
 import ConfigModal from "../components/dashboard/ConfigModal"
 import { ChatWidget } from "../components/ChatWidget"
+import { EquipeModal } from "../components/EquipeModal"
 
 export default function SistemaLayout() {
     const navigate = useNavigate()
@@ -20,6 +21,7 @@ export default function SistemaLayout() {
     const [loading, setLoading] = useState(true)
     const [isUploading, setIsUploading] = useState(false)
     const [showConfigModal, setShowConfigModal] = useState(false)
+    const [showEquipeModal, setShowEquipeModal] = useState(false)
     const [perfilId, setPerfilId] = useState<string | null>(null)
     const [userEmail, setUserEmail] = useState<string | null>(null)
 
@@ -275,6 +277,10 @@ export default function SistemaLayout() {
                 />
             )}
 
+            {showEquipeModal && (
+                <EquipeModal onClose={() => setShowEquipeModal(false)} />
+            )}
+
             <header className="bg-white shadow px-8 py-3 flex justify-between items-center shrink-0 sticky top-0 z-30">
                 <div className="flex items-center gap-3">
                     <div
@@ -341,7 +347,6 @@ export default function SistemaLayout() {
                     {/* Navegação */}
                     <nav className="flex items-center gap-1 ml-6 border-l border-gray-200 pl-6">
                         <NavLink to="/dashboard" icon={<LayoutDashboard size={16} />} label="Dashboard" />
-                        <NavLink to="/usuarios" icon={<Users size={16} />} label="Usuários" />
                     </nav>
                 </div>
 
@@ -402,6 +407,14 @@ export default function SistemaLayout() {
                     </div>
 
                     <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                        <button
+                            onClick={() => setShowEquipeModal(true)}
+                            className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-2 mr-2 border border-indigo-100"
+                        >
+                            <Users size={16} />
+                            Gestão de Equipe
+                        </button>
+
                         <button
                             onClick={() => setShowConfigModal(true)}
                             title="Configurações (CNPJ, CPF, CREA)"

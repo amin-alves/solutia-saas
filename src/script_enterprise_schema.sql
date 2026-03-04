@@ -31,7 +31,7 @@ USING (
     EXISTS (
         SELECT 1 FROM public.documentos d
         WHERE d.id = documento_id 
-        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );
 
@@ -55,7 +55,7 @@ CREATE POLICY "Leitura de processos isolada por empresa"
 ON public.workflows FOR SELECT 
 TO authenticated 
 USING (
-   empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+   empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 5. CRIAÇÃO: Tabela de Histórico (Auditoria) do Workflow (Não pode haver DELETE via sistema)
@@ -77,7 +77,7 @@ USING (
     EXISTS (
         SELECT 1 FROM public.workflows w
         WHERE w.id = workflow_id 
-        AND w.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND w.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );
 

@@ -47,44 +47,44 @@ ALTER TABLE public.mensagens ENABLE ROW LEVEL SECURITY;
 
 -- CONVERSAS: só vê conversas da sua empresa e onde é participante
 CREATE POLICY "conversas_select" ON public.conversas FOR SELECT USING (
-    empresa_id IN (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
-    AND id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = auth.uid())
+    empresa_id IN (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
+    AND id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = (select auth.uid()))
 );
 
 CREATE POLICY "conversas_insert" ON public.conversas FOR INSERT WITH CHECK (
-    empresa_id IN (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    empresa_id IN (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 CREATE POLICY "conversas_update" ON public.conversas FOR UPDATE USING (
-    empresa_id IN (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
-    AND id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = auth.uid())
+    empresa_id IN (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
+    AND id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = (select auth.uid()))
 );
 
 -- PARTICIPANTES: ver e adicionar nas conversas que participa
 CREATE POLICY "participantes_select" ON public.conversa_participantes FOR SELECT USING (
-    conversa_id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = auth.uid())
+    conversa_id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = (select auth.uid()))
 );
 
 CREATE POLICY "participantes_insert" ON public.conversa_participantes FOR INSERT WITH CHECK (
     conversa_id IN (
         SELECT id FROM public.conversas WHERE empresa_id IN (
-            SELECT empresa_id FROM public.perfis WHERE id = auth.uid()
+            SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid())
         )
     )
 );
 
 CREATE POLICY "participantes_delete" ON public.conversa_participantes FOR DELETE USING (
-    perfil_id = auth.uid()
+    perfil_id = (select auth.uid())
 );
 
 -- MENSAGENS: ver mensagens das conversas que participa, enviar nas que participa
 CREATE POLICY "mensagens_select" ON public.mensagens FOR SELECT USING (
-    conversa_id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = auth.uid())
+    conversa_id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = (select auth.uid()))
 );
 
 CREATE POLICY "mensagens_insert" ON public.mensagens FOR INSERT WITH CHECK (
-    enviada_por = auth.uid()
-    AND conversa_id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = auth.uid())
+    enviada_por = (select auth.uid())
+    AND conversa_id IN (SELECT conversa_id FROM public.conversa_participantes WHERE perfil_id = (select auth.uid()))
 );
 
 -- ==============================================================================

@@ -19,19 +19,19 @@ ALTER TABLE public.pastas ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Leitura de pastas da propria empresa"
 ON public.pastas FOR SELECT TO authenticated
-USING (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid()));
+USING (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid())));
 
 CREATE POLICY "Insercao de pastas para a propria empresa"
 ON public.pastas FOR INSERT TO authenticated
-WITH CHECK (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid()));
+WITH CHECK (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid())));
 
 CREATE POLICY "Atualizacao de pastas da propria empresa"
 ON public.pastas FOR UPDATE TO authenticated
-USING (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid()));
+USING (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid())));
 
 CREATE POLICY "Delecao de pastas da propria empresa"
 ON public.pastas FOR DELETE TO authenticated
-USING (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid()));
+USING (empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid())));
 
 -- ============================
 -- 2. ATUALIZAÇÃO: documentos -> adicionar referência à pasta
@@ -67,7 +67,7 @@ USING (
     EXISTS (
         SELECT 1 FROM public.documentos d
         WHERE d.id = documento_id
-        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );
 
@@ -77,7 +77,7 @@ WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.documentos d
         WHERE d.id = documento_id
-        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );
 

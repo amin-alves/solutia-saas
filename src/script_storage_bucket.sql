@@ -23,7 +23,7 @@ ON storage.objects FOR INSERT
 TO authenticated 
 WITH CHECK (
     bucket_id = 'documentos_corporativos' AND
-    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = auth.uid())
+    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 4. Política: Usuários logados podem LER arquivos da pasta da própria empresa
@@ -32,7 +32,7 @@ ON storage.objects FOR SELECT
 TO authenticated 
 USING (
     bucket_id = 'documentos_corporativos' AND
-    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = auth.uid())
+    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 5. Política: Usuários logados podem ATUALIZAR arquivos da pasta da própria empresa
@@ -41,7 +41,7 @@ ON storage.objects FOR UPDATE
 TO authenticated 
 USING (
     bucket_id = 'documentos_corporativos' AND
-    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = auth.uid())
+    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 6. Política: Usuários logados podem DELETAR arquivos da pasta da própria empresa
@@ -50,5 +50,5 @@ ON storage.objects FOR DELETE
 TO authenticated 
 USING (
     bucket_id = 'documentos_corporativos' AND
-    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = auth.uid())
+    (storage.foldername(name))[1] = (SELECT empresa_id::text FROM public.perfis WHERE id = (select auth.uid()))
 );

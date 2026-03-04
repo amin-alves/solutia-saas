@@ -16,7 +16,7 @@ DROP POLICY IF EXISTS "Atualizacao do proprio perfil" ON public.perfis;
 CREATE POLICY "Atualizacao do proprio perfil"
 ON public.perfis FOR UPDATE
 TO authenticated
-USING (id = auth.uid());
+USING (id = (select auth.uid()));
 
 -- NOTA: A política para os usuários editarem a tabela `empresas` já foi criada no
 --       script anterior ("Atualizacao de Logo por Usuarios da Empresa"). Ela serve

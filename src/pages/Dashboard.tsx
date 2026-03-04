@@ -36,11 +36,12 @@ export default function Dashboard() {
     const [leftWidth, setLeftWidth] = useState(25)
     const [showPanel, setShowPanel] = useState(false)
     const [panelWidth, setPanelWidth] = useState(28)
+    const [centerTopHeight, setCenterTopHeight] = useState(50)
     const [showBiMetrics, setShowBiMetrics] = useState(false)
     const [showProcessosBiMetrics, setShowProcessosBiMetrics] = useState(false)
 
     const containerRef = useRef<HTMLDivElement>(null)
-    const draggingRef = useRef<'left' | 'right' | null>(null)
+    const draggingRef = useRef<'left' | 'right' | 'center' | null>(null)
 
     // --- Documentos State ---
     const empresaId = localStorage.getItem('solutia_empresa_id') || ''
@@ -62,20 +63,25 @@ export default function Dashboard() {
     const isImage = selectedDoc?.extensao ? IMAGE_TYPES.includes(selectedDoc.extensao.toLowerCase()) : false
 
     // --- Handlers para Resizing ---
-    const handleMouseDown = useCallback((divider: 'left' | 'right') => {
+    const handleMouseDown = useCallback((divider: 'left' | 'right' | 'center') => {
         draggingRef.current = divider
-        document.body.style.cursor = 'col-resize'
+        document.body.style.cursor = divider === 'center' ? 'row-resize' : 'col-resize'
         document.body.style.userSelect = 'none'
 
         const handleMouseMove = (e: MouseEvent) => {
             if (!containerRef.current || !draggingRef.current) return
             const rect = containerRef.current.getBoundingClientRect()
-            const pct = ((e.clientX - rect.left) / rect.width) * 100
 
-            if (draggingRef.current === 'left') {
-                setLeftWidth(Math.min(Math.max(pct, 12), 45))
+            if (draggingRef.current === 'center') {
+                const pct = ((e.clientY - rect.top) / rect.height) * 100
+                setCenterTopHeight(Math.min(Math.max(pct, 20), 80))
             } else {
-                setPanelWidth(Math.min(Math.max(100 - pct, 15), 50))
+                const pct = ((e.clientX - rect.left) / rect.width) * 100
+                if (draggingRef.current === 'left') {
+                    setLeftWidth(Math.min(Math.max(pct, 12), 45))
+                } else {
+                    setPanelWidth(Math.min(Math.max(100 - pct, 15), 50))
+                }
             }
         }
 
@@ -220,131 +226,138 @@ export default function Dashboard() {
                 <div className="w-0.5 h-8 bg-gray-300 group-hover:bg-indigo-500 rounded-full transition-colors" />
             </div>
 
-            {/* ═══ Painel Central 1 (Documentos) ═══ */}
-            <div className="h-full overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900 mx-1" style={{ width: `${centerWidth / 2}%` }}>
+            {/* ═══ Painel Central (Dividido em Topo/Base) ═══ */}
+            <div className="h-full flex flex-col mx-1" style={{ width: `${centerWidth}%` }}>
 
-                {/* Visualização de Documento / Pasta (Meio Acima) */}
-                <div className={`flex-1 overflow-y-auto p-4 md:p-6 ${showBiMetrics ? 'h-[55%]' : 'h-[calc(100%-3rem)]'}`}>
-                    {selectedDoc ? (
-                        <div className="max-w-4xl mx-auto space-y-6">
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <div className="flex items-start justify-between">
-                                    <div className="flex items-start gap-4 min-w-0">
-                                        <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shrink-0">
-                                            <FileText className="text-indigo-600 dark:text-indigo-400" size={24} />
-                                        </div>
-                                        <div className="min-w-0">
-                                            <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate cursor-pointer hover:text-indigo-600 transition-colors" onClick={handleRenameDoc} title="Clique para renomear">
-                                                {selectedDoc.titulo}
-                                            </h2>
-                                            <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                                <span className="uppercase font-medium text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">.{selectedDoc.extensao || '?'}</span>
-                                                <span>{selectedDoc.tamanho}</span>
-                                                <span>•</span><span>v{selectedDoc.versao_atual || 1}</span>
-                                                {selectedDoc.assinado && (<><span>•</span><span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-1">✓ Assinado</span></>)}
+                {/* ═══ Painel Central Superior (Documentos) ═══ */}
+                <div className="overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-lg relative" style={{ height: `${centerTopHeight}%` }}>
+
+                    {/* Visualização de Documento / Pasta (Meio Acima) */}
+                    <div className={`flex-1 overflow-y-auto p-4 md:p-6 ${showBiMetrics ? 'h-[55%]' : 'h-[calc(100%-3rem)]'}`}>
+                        {selectedDoc ? (
+                            <div className="max-w-4xl mx-auto space-y-6">
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex items-start gap-4 min-w-0">
+                                            <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900/40 flex items-center justify-center shrink-0">
+                                                <FileText className="text-indigo-600 dark:text-indigo-400" size={24} />
+                                            </div>
+                                            <div className="min-w-0">
+                                                <h2 className="text-xl font-bold text-gray-900 dark:text-white truncate cursor-pointer hover:text-indigo-600 transition-colors" onClick={handleRenameDoc} title="Clique para renomear">
+                                                    {selectedDoc.titulo}
+                                                </h2>
+                                                <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
+                                                    <span className="uppercase font-medium text-xs bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded">.{selectedDoc.extensao || '?'}</span>
+                                                    <span>{selectedDoc.tamanho}</span>
+                                                    <span>•</span><span>v{selectedDoc.versao_atual || 1}</span>
+                                                    {selectedDoc.assinado && (<><span>•</span><span className="text-green-600 dark:text-green-400 font-medium flex items-center gap-1">✓ Assinado</span></>)}
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                    <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
+                                        <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm"><Download size={16} /> Baixar</button>
+                                        <button onClick={() => setShowSignModal(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50"><Pen size={16} /> Assinar</button>
+                                        <button onClick={() => setShowMoveModal(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50"><FolderInput size={16} /> Mover</button>
+                                        <button onClick={handleDelete} disabled={selectedDoc.assinado} className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg ml-auto ${selectedDoc.assinado ? 'text-gray-400 bg-gray-100 cursor-not-allowed opacity-50' : 'text-red-600 bg-white border border-red-200 hover:bg-red-50'}`}>{selectedDoc.assinado ? '🔒' : <Trash2 size={16} />} Excluir</button>
+                                    </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-gray-100 dark:border-gray-700">
-                                    <button onClick={handleDownload} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 shadow-sm"><Download size={16} /> Baixar</button>
-                                    <button onClick={() => setShowSignModal(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50"><Pen size={16} /> Assinar</button>
-                                    <button onClick={() => setShowMoveModal(true)} className="flex items-center gap-2 px-4 py-2 text-sm font-medium bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50"><FolderInput size={16} /> Mover</button>
-                                    <button onClick={handleDelete} disabled={selectedDoc.assinado} className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg ml-auto ${selectedDoc.assinado ? 'text-gray-400 bg-gray-100 cursor-not-allowed opacity-50' : 'text-red-600 bg-white border border-red-200 hover:bg-red-50'}`}>{selectedDoc.assinado ? '🔒' : <Trash2 size={16} />} Excluir</button>
+
+                                {isPreviewable && (
+                                    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
+                                        <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700"><h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Eye size={16} /> Visualização</h3></div>
+                                        {loadingPreview ? (<div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-indigo-500" /></div>)
+                                            : previewUrl ? (
+                                                <div className="bg-gray-100 dark:bg-gray-900">
+                                                    {isImage ? (<img src={previewUrl} alt={selectedDoc.titulo} className="w-full max-h-[400px] object-contain p-4" />)
+                                                        : isOffice ? (<iframe src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`} className="w-full h-[500px] border-0" title="Preview" />)
+                                                            : (<iframe src={previewUrl} className="w-full h-[500px] border-0" title="Preview" />)}
+                                                </div>
+                                            ) : (<div className="text-center py-8 text-sm text-gray-400">Não foi possível carregar o preview.</div>)}
+                                    </div>
+                                )}
+
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                    <VersionHistory documentoId={selectedDoc.id} empresaId={empresaId} titulo={selectedDoc.titulo} extensao={selectedDoc.extensao} isAssinado={selectedDoc.assinado} onNewVersion={refresh} />
+                                </div>
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                    <SignatureVerifier documentoId={selectedDoc.id} caminhoStorage={selectedDoc.caminho_storage} />
                                 </div>
                             </div>
-
-                            {isPreviewable && (
-                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                                    <div className="flex items-center justify-between px-6 py-3 border-b border-gray-100 dark:border-gray-700"><h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2"><Eye size={16} /> Visualização</h3></div>
-                                    {loadingPreview ? (<div className="flex items-center justify-center py-12"><Loader2 size={24} className="animate-spin text-indigo-500" /></div>)
-                                        : previewUrl ? (
-                                            <div className="bg-gray-100 dark:bg-gray-900">
-                                                {isImage ? (<img src={previewUrl} alt={selectedDoc.titulo} className="w-full max-h-[400px] object-contain p-4" />)
-                                                    : isOffice ? (<iframe src={`https://docs.google.com/gview?url=${encodeURIComponent(previewUrl)}&embedded=true`} className="w-full h-[500px] border-0" title="Preview" />)
-                                                        : (<iframe src={previewUrl} className="w-full h-[500px] border-0" title="Preview" />)}
-                                            </div>
-                                        ) : (<div className="text-center py-8 text-sm text-gray-400">Não foi possível carregar o preview.</div>)}
+                        ) : selectedFolder ? (
+                            <div className="max-w-2xl mx-auto space-y-6">
+                                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                                    <span>Pastas</span> <ChevronRightIcon size={14} /> <span className="font-medium text-gray-700 dark:text-gray-200">{selectedFolder.nome}</span>
                                 </div>
-                            )}
-
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <VersionHistory documentoId={selectedDoc.id} empresaId={empresaId} titulo={selectedDoc.titulo} extensao={selectedDoc.extensao} isAssinado={selectedDoc.assinado} onNewVersion={refresh} />
+                                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                                    <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Upload size={20} className="text-indigo-500" /> Enviar para "{selectedFolder.nome}"</h3>
+                                    <FileUploader empresaId={empresaId} pastaId={selectedFolder.id} onUploadComplete={refresh} />
+                                </div>
                             </div>
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <SignatureVerifier documentoId={selectedDoc.id} caminhoStorage={selectedDoc.caminho_storage} />
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-center">
+                                <div className="w-20 h-20 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-4"><Info size={32} className="text-indigo-400" /></div>
+                                <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Visão Geral Documentos</h2>
+                                <p className="text-sm text-gray-400 max-w-md mb-6">Selecione uma pasta ou documento na árvore para visualizar os detalhes e gerenciar os arquivos da empresa.</p>
+                                <button onClick={() => setShowUploader(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-all shadow-lg"><Upload size={18} /> Enviar Arquivo na Raiz</button>
                             </div>
-                        </div>
-                    ) : selectedFolder ? (
-                        <div className="max-w-2xl mx-auto space-y-6">
-                            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                <span>Pastas</span> <ChevronRightIcon size={14} /> <span className="font-medium text-gray-700 dark:text-gray-200">{selectedFolder.nome}</span>
-                            </div>
-                            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Upload size={20} className="text-indigo-500" /> Enviar para "{selectedFolder.nome}"</h3>
-                                <FileUploader empresaId={empresaId} pastaId={selectedFolder.id} onUploadComplete={refresh} />
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="flex flex-col items-center justify-center h-full text-center">
-                            <div className="w-20 h-20 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center mb-4"><Info size={32} className="text-indigo-400" /></div>
-                            <h2 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">Visão Geral Documentos</h2>
-                            <p className="text-sm text-gray-400 max-w-md mb-6">Selecione uma pasta ou documento na árvore para visualizar os detalhes e gerenciar os arquivos da empresa.</p>
-                            <button onClick={() => setShowUploader(true)} className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-indigo-700 transition-all shadow-lg"><Upload size={18} /> Enviar Arquivo na Raiz</button>
-                        </div>
-                    )}
-                </div>
-
-                {/* Área BI Toggle 1 (Abaixo no Meio) */}
-                <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 flex flex-col ${showBiMetrics ? 'h-[45%]' : 'h-12'}`}>
-                    <div
-                        className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                        onClick={() => setShowBiMetrics(!showBiMetrics)}
-                    >
-                        <h3 className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm">
-                            Dashboard Analytics Documentos
-                        </h3>
-                        {showBiMetrics ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronUp size={20} className="text-gray-400" />}
+                        )}
                     </div>
-                    {showBiMetrics && (
-                        <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/50">
-                            <BiMetrics />
+
+                    {/* Área BI Toggle 1 (Abaixo no Meio) */}
+                    <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 flex flex-col ${showBiMetrics ? 'h-[45%]' : 'h-12'}`}>
+                        <div
+                            className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                            onClick={() => setShowBiMetrics(!showBiMetrics)}
+                        >
+                            <h3 className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2 bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-sm">
+                                Dashboard Analytics Documentos
+                            </h3>
+                            {showBiMetrics ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronUp size={20} className="text-gray-400" />}
                         </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Divider Central */}
-            <div className="w-1.5 h-full flex items-center justify-center shrink-0">
-                <div className="w-0.5 h-8 bg-gray-200 rounded-full" />
-            </div>
-
-            {/* ═══ Painel Central 2 (Processos) ═══ */}
-            <div className="h-full overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900 mx-1" style={{ width: `${centerWidth / 2}%` }}>
-
-                {/* Visualização da Visão Geral (Meio Acima) */}
-                <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col items-center flex-start text-center ${showProcessosBiMetrics ? 'h-[55%]' : 'h-[calc(100%-3rem)]'}`}>
-                    <div className="w-20 h-20 mt-10 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 text-green-600"><PanelRight size={38} className="transform rotate-180" /></div>
-                    <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Visão Geral Processos</h2>
-                    <p className="text-base text-gray-500 max-w-md mb-6">Aqui será construída a área de exibir o funil e informações específicas referentes aos processos atuais das esteiras.</p>
-                </div>
-
-                {/* Área BI Toggle 2 (Abaixo no Meio) */}
-                <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 flex flex-col ${showProcessosBiMetrics ? 'h-[45%]' : 'h-12'}`}>
-                    <div
-                        className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
-                        onClick={() => setShowProcessosBiMetrics(!showProcessosBiMetrics)}
-                    >
-                        <h3 className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
-                            Dashboard Analytics Processos
-                        </h3>
-                        {showProcessosBiMetrics ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronUp size={20} className="text-gray-400" />}
+                        {showBiMetrics && (
+                            <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/50">
+                                <BiMetrics />
+                            </div>
+                        )}
                     </div>
-                    {showProcessosBiMetrics && (
-                        <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/50 p-6 flex flex-col items-center justify-center">
-                            <h2 className="text-xl font-bold text-gray-600 dark:text-gray-300">BiMetrics Processos Em Breve</h2>
+                </div>
+
+                {/* Divider Central Horizontal */}
+                <div
+                    className="h-1.5 w-full cursor-row-resize group flex items-center justify-center shrink-0 hover:bg-indigo-100 transition-colors z-10 my-0.5"
+                    onMouseDown={() => handleMouseDown('center')}
+                >
+                    <div className="h-0.5 w-8 bg-gray-300 group-hover:bg-indigo-500 rounded-full transition-colors" />
+                </div>
+
+                {/* ═══ Painel Central Inferior (Processos) ═══ */}
+                <div className="overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-lg relative" style={{ height: `calc(${100 - centerTopHeight}% - 0.375rem)` }}>
+
+                    {/* Visualização da Visão Geral (Meio Acima) */}
+                    <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col items-center flex-start text-center ${showProcessosBiMetrics ? 'h-[55%]' : 'h-[calc(100%-3rem)]'}`}>
+                        <div className="w-20 h-20 mt-10 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 text-green-600"><PanelRight size={38} className="transform rotate-180" /></div>
+                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Visão Geral Processos</h2>
+                        <p className="text-base text-gray-500 max-w-md mb-6">Aqui será construída a área de exibir o funil e informações específicas referentes aos processos atuais das esteiras.</p>
+                    </div>
+
+                    {/* Área BI Toggle 2 (Abaixo no Meio) */}
+                    <div className={`border-t border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 transition-all duration-300 flex flex-col ${showProcessosBiMetrics ? 'h-[45%]' : 'h-12'}`}>
+                        <div
+                            className="flex items-center justify-between px-6 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700"
+                            onClick={() => setShowProcessosBiMetrics(!showProcessosBiMetrics)}
+                        >
+                            <h3 className="font-bold text-gray-700 dark:text-gray-300 flex items-center gap-2 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm">
+                                Dashboard Analytics Processos
+                            </h3>
+                            {showProcessosBiMetrics ? <ChevronDown size={20} className="text-gray-400" /> : <ChevronUp size={20} className="text-gray-400" />}
                         </div>
-                    )}
+                        {showProcessosBiMetrics && (
+                            <div className="flex-1 overflow-auto bg-gray-50/50 dark:bg-gray-900/50 p-6 flex flex-col items-center justify-center">
+                                <h2 className="text-xl font-bold text-gray-600 dark:text-gray-300">BiMetrics Processos Em Breve</h2>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

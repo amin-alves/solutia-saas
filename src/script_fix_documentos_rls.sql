@@ -11,7 +11,7 @@ CREATE POLICY "Leitura de documentos da propria empresa"
 ON public.documentos FOR SELECT
 TO authenticated
 USING (
-    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 3. Política: Usuários logados podem INSERIR documentos para a própria empresa
@@ -19,7 +19,7 @@ CREATE POLICY "Insercao de documentos para a propria empresa"
 ON public.documentos FOR INSERT
 TO authenticated
 WITH CHECK (
-    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 4. Política: Usuários logados podem ATUALIZAR documentos da própria empresa
@@ -27,7 +27,7 @@ CREATE POLICY "Atualizacao de documentos da propria empresa"
 ON public.documentos FOR UPDATE
 TO authenticated
 USING (
-    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- 5. Política: Usuários logados podem DELETAR documentos da própria empresa
@@ -35,7 +35,7 @@ CREATE POLICY "Delecao de documentos da propria empresa"
 ON public.documentos FOR DELETE
 TO authenticated
 USING (
-    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+    empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
 );
 
 -- ==============================================================================
@@ -51,7 +51,7 @@ WITH CHECK (
     EXISTS (
         SELECT 1 FROM public.documentos d
         WHERE d.id = documento_id 
-        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );
 
@@ -63,7 +63,7 @@ USING (
     EXISTS (
         SELECT 1 FROM public.documentos d
         WHERE d.id = documento_id 
-        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );
 
@@ -75,6 +75,6 @@ USING (
     EXISTS (
         SELECT 1 FROM public.documentos d
         WHERE d.id = documento_id 
-        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = auth.uid())
+        AND d.empresa_id = (SELECT empresa_id FROM public.perfis WHERE id = (select auth.uid()))
     )
 );

@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import LandingPage from './pages/LandingPage'
 import SistemaLayout from './layouts/SistemaLayout'
 import Dashboard from './pages/Dashboard'
-import Usuarios from './pages/Usuarios'
 import Documentos from './pages/Documentos'
 
 export default function App() {
@@ -14,7 +13,6 @@ export default function App() {
                 {/* Rotas Privadas */}
                 <Route path="/" element={<SistemaLayout />}>
                     <Route path="dashboard" element={<Dashboard />} />
-                    <Route path="usuarios" element={<Usuarios />} />
                     <Route path="documentos" element={<Documentos />} />
                 </Route>
 
