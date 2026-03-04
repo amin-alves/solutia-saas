@@ -13,10 +13,12 @@ serve(async (req: Request) => {
     }
 
     try {
-        const supabaseClient = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+        const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+        const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+
+        const adminClient = createClient(supabaseUrl, serviceRoleKey)
+        const anonClient = createClient(supabaseUrl, anonKey)
 
         const reqData = await req.json()
         const email = reqData?.email
@@ -26,33 +28,35 @@ serve(async (req: Request) => {
         }
 
         // Verifica se o usuário já existe no auth.users
-        const { data: existingUsers } = await supabaseClient.auth.admin.listUsers()
+        const { data: existingUsers } = await adminClient.auth.admin.listUsers()
         const userExists = existingUsers?.users?.find(
             (u: any) => u.email?.toLowerCase() === email.toLowerCase()
         )
 
         if (userExists) {
-            // Usuário já existe: gera um magic link para ele
-            const { data: linkData, error: linkError } = await supabaseClient.auth.admin.generateLink({
-                type: 'magiclink',
+            // Usuário já existe: envia magic link via OTP (isso ENVIA o e-mail)
+            const { error: otpError } = await anonClient.auth.signInWithOtp({
                 email: email,
+                options: {
+                    shouldCreateUser: false,
+                    emailRedirectTo: `https://solutia-saas.vercel.app/`,
+                },
             })
 
-            if (linkError) {
-                throw linkError
+            if (otpError) {
+                throw otpError
             }
 
             return new Response(JSON.stringify({
                 success: true,
-                message: 'Magic link gerado para usuário existente',
-                user: linkData.user
+                message: 'Magic link enviado para usuário existente',
             }), {
                 headers: { ...corsHeaders, 'Content-Type': 'application/json' },
                 status: 200,
             })
         } else {
             // Usuário novo: cria via convite (cria no auth.users + envia e-mail)
-            const { data, error } = await supabaseClient.auth.admin.inviteUserByEmail(email)
+            const { data, error } = await adminClient.auth.admin.inviteUserByEmail(email)
 
             if (error) {
                 throw error

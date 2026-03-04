@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { Eye, EyeOff, Lock, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
@@ -10,6 +10,19 @@ export default function LandingPage() {
     const [erro, setErro] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+
+    // Detecta login via Magic Link (callback do Supabase via URL hash)
+    useEffect(() => {
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'SIGNED_IN' && session) {
+                localStorage.setItem("solutia_auth", "true")
+                localStorage.setItem("solutia_user", session.user.email || "")
+                navigate("/dashboard", { replace: true })
+            }
+        })
+
+        return () => subscription.unsubscribe()
+    }, [navigate])
 
     // Limpa estados residuais ao montar a página de login para evitar vazamentos de cache
     useState(() => {
