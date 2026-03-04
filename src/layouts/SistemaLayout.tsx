@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react"
 import { useNavigate, Outlet, Link, useLocation } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
-import { Loader2, Settings, LayoutDashboard, Users, FolderOpen } from "lucide-react"
+import { Loader2, Settings, LayoutDashboard, Users } from "lucide-react"
 import ConfigModal from "../components/dashboard/ConfigModal"
 import { ChatWidget } from "../components/ChatWidget"
 
@@ -341,7 +341,6 @@ export default function SistemaLayout() {
                     {/* Navegação */}
                     <nav className="flex items-center gap-1 ml-6 border-l border-gray-200 pl-6">
                         <NavLink to="/dashboard" icon={<LayoutDashboard size={16} />} label="Dashboard" />
-                        <NavLink to="/documentos" icon={<FolderOpen size={16} />} label="Documentos" />
                         <NavLink to="/usuarios" icon={<Users size={16} />} label="Usuários" />
                     </nav>
                 </div>
