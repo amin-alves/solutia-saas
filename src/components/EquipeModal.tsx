@@ -117,20 +117,26 @@ export function EquipeModal({ onClose }: EquipeModalProps) {
             setInviteEmail("")
             setInviteRole("Membro")
 
-            // Disparo do convite utilizando Magic Link do Supabase diretamente pelo Client
-            const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-                email: inviteEmail,
-                options: {
-                    shouldCreateUser: true, // Cria o usuário no auth se não existir
-                    emailRedirectTo: `https://solutia-saas.vercel.app/` // Roteamento hardcoded para a URL fixa de prod (onde a Landing/Login reside)
+            // Disparo do convite via Edge Function (usa admin.inviteUserByEmail com Service Role Key)
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            const inviteResponse = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${anonKey}`,
                 },
+                body: JSON.stringify({ email: inviteEmail }),
             });
 
-            if (magicLinkError) {
-                console.error("Erro no envio do Magic Link:", magicLinkError)
-                alert(`O convite foi salvo, mas houve erro ao disparar o e-mail: ${magicLinkError.message}`)
+            const inviteResult = await inviteResponse.json();
+
+            if (!inviteResponse.ok || inviteResult.error) {
+                console.error("Erro no envio do convite:", inviteResult.error)
+                alert(`O convite foi salvo, mas houve erro ao disparar o e-mail: ${inviteResult.error}`)
             } else {
-                alert(`Perfeito! O Magic Link foi enviado para o convidado (${inviteEmail}).\nLembre-se: O link precisará do redirect configurado na Vercel para que o usuário caia no app após clicar!`)
+                alert(`Perfeito! O convite foi enviado para ${inviteEmail}.\nO usuário receberá um e-mail para acessar o sistema.`)
             }
         } catch (error: any) {
             console.error("Erro ao convidar:", error)
@@ -142,19 +148,25 @@ export function EquipeModal({ onClose }: EquipeModalProps) {
 
     const handleReenviar = async (email: string) => {
         try {
-            const { error: magicLinkError } = await supabase.auth.signInWithOtp({
-                email: email,
-                options: {
-                    shouldCreateUser: true,
-                    emailRedirectTo: `https://solutia-saas.vercel.app/`
+            const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+            const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+            const inviteResponse = await fetch(`${supabaseUrl}/functions/v1/invite-user`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${anonKey}`,
                 },
+                body: JSON.stringify({ email }),
             });
 
-            if (magicLinkError) {
-                console.error("Erro ao reenviar Magic Link:", magicLinkError)
-                alert(`Houve um erro ao reenviar o e-mail: ${magicLinkError.message}`)
+            const inviteResult = await inviteResponse.json();
+
+            if (!inviteResponse.ok || inviteResult.error) {
+                console.error("Erro ao reenviar convite:", inviteResult.error)
+                alert(`Houve um erro ao reenviar o e-mail: ${inviteResult.error}`)
             } else {
-                alert(`Sucesso! Um novo Magic Link de convite oficial foi disparado para ${email}.`)
+                alert(`Sucesso! O convite foi reenviado para ${email}.`)
             }
         } catch (error: any) {
             console.error("Erro ao reenviar convite:", error)

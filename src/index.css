@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/typography";
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   --font-geist-sans: "Inter", "Geist", system-ui, sans-serif;
@@ -11,4 +12,10 @@ body {
   font-family: var(--font-geist-sans), sans-serif;
   background-color: #f8fafc;
   color: #0f172a;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+html.dark body {
+  background-color: #0f172a;
+  color: #e2e8f0;
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react"
-import { useNavigate, Outlet, Link, useLocation } from "react-router-dom"
+import { useNavigate, Outlet } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
-import { Loader2, Settings, LayoutDashboard, Users } from "lucide-react"
+import { Loader2, Settings, Users } from "lucide-react"
 import ConfigModal from "../components/dashboard/ConfigModal"
 import { ChatWidget } from "../components/ChatWidget"
 import { EquipeModal } from "../components/EquipeModal"
@@ -36,6 +36,14 @@ export default function SistemaLayout() {
     const [tempCargo, setTempCargo] = useState('')
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+
+    // Initialize theme on mount
+    useEffect(() => {
+        const savedTheme = localStorage.getItem('solutia_theme');
+        if (savedTheme === 'dark') {
+            document.documentElement.classList.add('dark');
+        }
+    }, []);
 
     useEffect(() => {
         let isMounted = true
@@ -263,7 +271,7 @@ export default function SistemaLayout() {
     if (loading) return null
 
     return (
-        <div className="flex flex-col h-screen bg-gray-100 overflow-hidden">
+        <div className="flex flex-col h-screen bg-gray-100 dark:bg-gray-900 overflow-hidden transition-colors duration-300">
 
             {showConfigModal && empresaId && perfilId && (
                 <ConfigModal
@@ -281,7 +289,7 @@ export default function SistemaLayout() {
                 <EquipeModal onClose={() => setShowEquipeModal(false)} />
             )}
 
-            <header className="bg-white shadow px-8 py-3 flex justify-between items-center shrink-0 sticky top-0 z-30">
+            <header className="bg-white dark:bg-gray-800 shadow dark:shadow-gray-900/50 px-8 py-3 flex justify-between items-center shrink-0 sticky top-0 z-30 transition-colors duration-300">
                 <div className="flex items-center gap-3">
                     <div
                         className="cursor-pointer hover:opacity-80 transition-opacity"
@@ -301,13 +309,13 @@ export default function SistemaLayout() {
                         />
 
                         {isUploading ? (
-                            <div className="h-8 w-8 bg-indigo-50 rounded-lg flex items-center justify-center">
-                                <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                            <div className="h-8 w-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
+                                <Loader2 className="w-5 h-5 animate-spin text-indigo-600 dark:text-indigo-400" />
                             </div>
                         ) : logoUrl ? (
                             <img src={logoUrl} alt={`Logo ${empresa}`} className="h-8 w-auto object-contain" />
                         ) : (
-                            <div className="h-8 w-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-700 font-bold shrink-0">
+                            <div className="h-8 w-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold shrink-0">
                                 {empresa ? empresa.charAt(0) : 'S'}
                             </div>
                         )}
@@ -323,11 +331,11 @@ export default function SistemaLayout() {
                                 onChange={(e) => setTempEmpresa(e.target.value)}
                                 onBlur={handleUpdateEmpresa}
                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateEmpresa()}
-                                className="text-lg font-semibold text-gray-700 border-b-2 border-indigo-500 outline-none bg-indigo-50 px-1 py-0.5"
+                                className="text-lg font-semibold text-gray-700 dark:text-gray-200 border-b-2 border-indigo-500 outline-none bg-indigo-50 dark:bg-gray-700 px-1 py-0.5"
                             />
                         ) : (
                             <h1
-                                className="text-lg font-semibold text-gray-700 cursor-text hover:bg-gray-50 px-1 py-0.5 rounded transition-colors title-edit-hover leading-tight"
+                                className="text-lg font-semibold text-gray-700 dark:text-gray-200 cursor-text hover:bg-gray-50 dark:hover:bg-gray-700 px-1 py-0.5 rounded transition-colors title-edit-hover leading-tight"
                                 title="Clique para editar o nome da empresa"
                                 onClick={() => {
                                     setTempEmpresa(empresa || "");
@@ -338,16 +346,13 @@ export default function SistemaLayout() {
                             </h1>
                         )}
                         {empresaCnpj && !isEditingEmpresa && (
-                            <span className="text-xs text-slate-500 font-medium px-1 mt-0.5">
+                            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium px-1 mt-0.5">
                                 CNPJ: {empresaCnpj}
                             </span>
                         )}
                     </div>
 
-                    {/* Navegação */}
-                    <nav className="flex items-center gap-1 ml-6 border-l border-gray-200 pl-6">
-                        <NavLink to="/dashboard" icon={<LayoutDashboard size={16} />} label="Dashboard" />
-                    </nav>
+
                 </div>
 
                 <div className="flex items-center gap-5">
@@ -361,11 +366,11 @@ export default function SistemaLayout() {
                                 onChange={(e) => setTempUser(e.target.value)}
                                 onBlur={handleUpdateUser}
                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateUser()}
-                                className="text-sm font-medium text-gray-800 border-b border-indigo-500 outline-none bg-indigo-50 px-1 text-right"
+                                className="text-sm font-medium text-gray-800 dark:text-gray-200 border-b border-indigo-500 outline-none bg-indigo-50 dark:bg-gray-700 px-1 text-right"
                             />
                         ) : (
                             <p
-                                className="text-sm font-medium text-gray-800 cursor-text hover:bg-gray-50 px-1 rounded transition-colors title-edit-hover"
+                                className="text-sm font-medium text-gray-800 dark:text-gray-200 cursor-text hover:bg-gray-50 dark:hover:bg-gray-700 px-1 rounded transition-colors title-edit-hover"
                                 title="Clique para editar seu nome"
                                 onClick={() => {
                                     setTempUser(user || "");
@@ -386,11 +391,11 @@ export default function SistemaLayout() {
                                 onBlur={handleUpdateCargo}
                                 onKeyDown={(e) => e.key === 'Enter' && handleUpdateCargo()}
                                 placeholder="Seu cargo..."
-                                className="text-xs text-indigo-600 border-b border-indigo-500 outline-none bg-indigo-50 px-1 text-right mt-0.5"
+                                className="text-xs text-indigo-600 dark:text-indigo-400 border-b border-indigo-500 outline-none bg-indigo-50 dark:bg-gray-700 px-1 text-right mt-0.5"
                             />
                         ) : (
                             <p
-                                className="text-xs text-indigo-600 font-medium cursor-text hover:bg-indigo-50 px-1 rounded transition-colors title-edit-hover mt-0.5"
+                                className="text-xs text-indigo-600 dark:text-indigo-400 font-medium cursor-text hover:bg-indigo-50 dark:hover:bg-gray-700 px-1 rounded transition-colors title-edit-hover mt-0.5"
                                 title="Clique para editar seu cargo"
                                 onClick={() => {
                                     setTempCargo(userCargo || "");
@@ -401,15 +406,15 @@ export default function SistemaLayout() {
                             </p>
                         )}
 
-                        <p className="text-[10px] text-gray-400 mt-1 px-1">
+                        <p className="text-[10px] text-gray-400 dark:text-gray-500 mt-1 px-1">
                             {userEmail}
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2 border-l border-gray-200 pl-4">
+                    <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
                         <button
                             onClick={() => setShowEquipeModal(true)}
-                            className="bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-100 transition-colors flex items-center gap-2 mr-2 border border-indigo-100"
+                            className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-2 mr-2 border border-indigo-100 dark:border-indigo-800"
                         >
                             <Users size={16} />
                             Gestão de Equipe
@@ -418,7 +423,7 @@ export default function SistemaLayout() {
                         <button
                             onClick={() => setShowConfigModal(true)}
                             title="Configurações (CNPJ, CPF, CREA)"
-                            className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
                         >
                             <Settings className="w-5 h-5" />
                         </button>
@@ -426,7 +431,7 @@ export default function SistemaLayout() {
                         <button
                             onClick={logout}
                             title="Sair do sistema"
-                            className="bg-red-50 text-red-600 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 transition"
+                            className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition"
                         >
                             Sair
                         </button>
@@ -434,14 +439,14 @@ export default function SistemaLayout() {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto p-8">
+            <main className="flex-1 overflow-y-auto p-8 transition-colors duration-300">
                 <Outlet />
             </main>
 
             {/* Footer fixo */}
-            <footer className="bg-white border-t border-gray-200 px-8 py-2 flex items-center justify-between shrink-0 sticky bottom-0 z-30">
-                <span className="text-xs text-gray-400">© {new Date().getFullYear()} Solutia — Sistema de Gestão</span>
-                <span className="text-xs text-gray-400">v1.0.0</span>
+            <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-8 py-2 flex items-center justify-between shrink-0 sticky bottom-0 z-30 transition-colors duration-300">
+                <span className="text-xs text-gray-400 dark:text-gray-500">© {new Date().getFullYear()} Solutia — Sistema de Gestão</span>
+                <span className="text-xs text-gray-400 dark:text-gray-500">v1.0.0</span>
             </footer>
 
             {/* Chat Widget Popup */}
@@ -451,21 +456,4 @@ export default function SistemaLayout() {
     )
 }
 
-function NavLink({ to, icon, label }: { to: string; icon: React.ReactNode; label: string }) {
-    const location = useLocation()
-    const isActive = location.pathname === to || location.pathname.startsWith(to + '/')
 
-    return (
-        <Link
-            to={to}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors
-                ${isActive
-                    ? 'bg-indigo-50 text-indigo-700'
-                    : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
-                }`}
-        >
-            {icon}
-            {label}
-        </Link>
-    )
-}
