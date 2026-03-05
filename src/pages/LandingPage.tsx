@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
-import { Eye, EyeOff, Lock, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Lock, Loader2, Mail } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
@@ -8,8 +8,10 @@ export default function LandingPage() {
     const [email, setEmail] = useState("")
     const [senha, setSenha] = useState("")
     const [erro, setErro] = useState("")
+    const [sucesso, setSucesso] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
+    const [modoMagicLink, setModoMagicLink] = useState(false)
 
     // Detecta login via Magic Link (callback do Supabase via URL hash)
     useEffect(() => {
@@ -79,6 +81,36 @@ export default function LandingPage() {
         }
     }
 
+    async function handleMagicLink(e: React.FormEvent) {
+        e.preventDefault()
+        setErro("")
+        setSucesso("")
+        if (!email) { setErro("Digite seu e-mail."); return }
+        setIsLoading(true)
+
+        try {
+            const { error } = await supabase.auth.signInWithOtp({
+                email: email.trim().toLowerCase(),
+                options: {
+                    shouldCreateUser: false,
+                    emailRedirectTo: window.location.origin + '/',
+                },
+            })
+
+            if (error) {
+                setErro(error.message.includes('rate limit')
+                    ? 'Muitas tentativas. Aguarde alguns minutos.'
+                    : 'Erro ao enviar link. Verifique o e-mail.')
+            } else {
+                setSucesso('Link de acesso enviado! Verifique seu e-mail e clique no link para entrar.')
+            }
+        } catch (error) {
+            setErro('Erro inesperado ao enviar link.')
+        } finally {
+            setIsLoading(false)
+        }
+    }
+
     return (
         <div className="min-h-screen bg-blue-950 font-sans flex flex-col justify-center items-center relative overflow-hidden selection:bg-yellow-400 selection:text-blue-950 pb-16">
 
@@ -105,11 +137,22 @@ export default function LandingPage() {
 
                 {/* Login Card Branco e Simples */}
                 <div className="bg-white px-8 py-10 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.2)] w-full relative">
-                    <form className="space-y-5" onSubmit={(e) => handleLogin(e)}>
+                    <form className="space-y-5" onSubmit={modoMagicLink ? handleMagicLink : handleLogin}>
                         {erro && (
                             <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded text-sm text-center font-medium animate-in fade-in duration-200">
                                 {erro}
                             </div>
+                        )}
+                        {sucesso && (
+                            <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-700 rounded text-sm text-center font-medium animate-in fade-in duration-200">
+                                {sucesso}
+                            </div>
+                        )}
+
+                        {modoMagicLink && (
+                            <p className="text-slate-500 text-sm text-center">
+                                Digite seu e-mail e enviaremos um link para acessar sua conta.
+                            </p>
                         )}
 
                         <div>
@@ -124,42 +167,48 @@ export default function LandingPage() {
                             />
                         </div>
 
-                        <div>
-                            <div className="relative">
-                                <input
-                                    type={showPassword ? "text" : "password"}
-                                    placeholder="Senha"
-                                    className="w-full px-4 py-[14px] bg-slate-50 border border-slate-200 rounded focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors text-slate-800 placeholder-slate-400 text-[15px] shadow-sm pr-12"
-                                    value={senha}
-                                    onChange={(e) => setSenha(e.target.value)}
-                                    disabled={isLoading}
-                                    required
-                                />
-                                <button
-                                    type="button"
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
-                                >
-                                    {showPassword ? <EyeOff strokeWidth={1.5} size={18} /> : <Eye strokeWidth={1.5} size={18} />}
-                                </button>
+                        {!modoMagicLink && (
+                            <div>
+                                <div className="relative">
+                                    <input
+                                        type={showPassword ? "text" : "password"}
+                                        placeholder="Senha"
+                                        className="w-full px-4 py-[14px] bg-slate-50 border border-slate-200 rounded focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500 focus:outline-none transition-colors text-slate-800 placeholder-slate-400 text-[15px] shadow-sm pr-12"
+                                        value={senha}
+                                        onChange={(e) => setSenha(e.target.value)}
+                                        disabled={isLoading}
+                                        required
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPassword(!showPassword)}
+                                        className="absolute inset-y-0 right-0 pr-4 flex items-center text-slate-400 hover:text-blue-600 transition-colors"
+                                    >
+                                        {showPassword ? <EyeOff strokeWidth={1.5} size={18} /> : <Eye strokeWidth={1.5} size={18} />}
+                                    </button>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="pt-3 pb-1">
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className="w-full bg-blue-600 disabled:bg-blue-400 text-white font-medium py-[12px] rounded hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 text-[15.5px] shadow-md shadow-blue-600/20 active:scale-[0.98]"
+                                className={`w-full ${modoMagicLink ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'} disabled:opacity-50 text-white font-medium py-[12px] rounded transition-colors flex items-center justify-center gap-2 text-[15.5px] shadow-md active:scale-[0.98]`}
                             >
-                                {isLoading ? <Loader2 size={16} strokeWidth={2.5} className="animate-spin" /> : <Lock size={16} strokeWidth={2.5} />}
-                                {isLoading ? 'ENTRANDO...' : 'ENTRAR'}
+                                {isLoading ? <Loader2 size={16} strokeWidth={2.5} className="animate-spin" /> : modoMagicLink ? <Mail size={16} strokeWidth={2.5} /> : <Lock size={16} strokeWidth={2.5} />}
+                                {isLoading ? 'ENVIANDO...' : modoMagicLink ? 'ENVIAR LINK DE ACESSO' : 'ENTRAR'}
                             </button>
                         </div>
 
                         <div className="text-center mt-6">
-                            <a href="#" className="text-[13.5px] text-slate-500 hover:text-blue-600 font-medium transition-colors">
-                                Esqueceu sua senha?
-                            </a>
+                            <button
+                                type="button"
+                                onClick={() => { setModoMagicLink(!modoMagicLink); setErro(''); setSucesso('') }}
+                                className="text-[13.5px] text-slate-500 hover:text-blue-600 font-medium transition-colors"
+                            >
+                                {modoMagicLink ? '← Voltar ao login com senha' : 'Esqueceu sua senha?'}
+                            </button>
                         </div>
                     </form>
                 </div>

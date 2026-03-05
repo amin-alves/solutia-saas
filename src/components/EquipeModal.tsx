@@ -43,15 +43,23 @@ export function EquipeModal({ onClose }: EquipeModalProps) {
                 .select("*")
                 .eq("empresa_id", empresaId)
 
-            // Busca os convites pendentes que pertencem à mesma empresa
+            // Busca os convites PENDENTES que pertencem à mesma empresa
             const { data: convitesData, error: convitesError } = await supabase
                 .from("convites")
                 .select("*")
                 .eq("empresa_id", empresaId)
+                .eq("status", "Pendente")
 
             if (!perfisError && !convitesError) {
                 const membrosAuth = (perfisData || []) as Usuario[];
-                const convitesAuth = (convitesData || []).map(convite => ({
+
+                // Filtra convites cujo email já existe em perfis (evita duplicatas)
+                const emailsPerfis = new Set(membrosAuth.map(m => m.email?.toLowerCase()));
+                const convitesFiltrados = (convitesData || []).filter(
+                    c => !emailsPerfis.has(c.email?.toLowerCase())
+                );
+
+                const convitesAuth = convitesFiltrados.map(convite => ({
                     id: convite.id,
                     nome: convite.nome || '—',
                     email: convite.email,
