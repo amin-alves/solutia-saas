@@ -11,12 +11,22 @@ export default function LandingPage() {
     const [sucesso, setSucesso] = useState("")
     const [isLoading, setIsLoading] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
-    const [modoMagicLink, setModoMagicLink] = useState(false)
+    const [modoRecuperarSenha, setModoRecuperarSenha] = useState(false)
 
     // Detecta login via Magic Link (callback do Supabase via URL hash)
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+            if (event === 'PASSWORD_RECOVERY') {
+                navigate("/update-password", { replace: true })
+                return
+            }
+
             if (event === 'SIGNED_IN' && session) {
+                // Evita redirecionar pro dashboard se estiver no meio de um fluxo de recuperação de senha
+                if (window.location.href.includes('type=recovery')) {
+                    return
+                }
+
                 localStorage.setItem("solutia_auth", "true")
                 localStorage.setItem("solutia_user", session.user.email || "")
                 navigate("/dashboard", { replace: true })
@@ -81,7 +91,7 @@ export default function LandingPage() {
         }
     }
 
-    async function handleMagicLink(e: React.FormEvent) {
+    async function handleRecuperarSenha(e: React.FormEvent) {
         e.preventDefault()
         setErro("")
         setSucesso("")
@@ -89,12 +99,8 @@ export default function LandingPage() {
         setIsLoading(true)
 
         try {
-            const { error } = await supabase.auth.signInWithOtp({
-                email: email.trim().toLowerCase(),
-                options: {
-                    shouldCreateUser: false,
-                    emailRedirectTo: window.location.origin + '/',
-                },
+            const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+                redirectTo: window.location.origin + '/update-password',
             })
 
             if (error) {
@@ -102,7 +108,7 @@ export default function LandingPage() {
                     ? 'Muitas tentativas. Aguarde alguns minutos.'
                     : 'Erro ao enviar link. Verifique o e-mail.')
             } else {
-                setSucesso('Link de acesso enviado! Verifique seu e-mail e clique no link para entrar.')
+                setSucesso('Link de recuperação enviado! Verifique seu e-mail para redefinir a senha.')
             }
         } catch (error) {
             setErro('Erro inesperado ao enviar link.')
@@ -137,7 +143,7 @@ export default function LandingPage() {
 
                 {/* Login Card Branco e Simples */}
                 <div className="bg-white px-8 py-10 rounded-xl shadow-[0_8px_30px_rgb(0,0,0,0.2)] w-full relative">
-                    <form className="space-y-5" onSubmit={modoMagicLink ? handleMagicLink : handleLogin}>
+                    <form className="space-y-5" onSubmit={modoRecuperarSenha ? handleRecuperarSenha : handleLogin}>
                         {erro && (
                             <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded text-sm text-center font-medium animate-in fade-in duration-200">
                                 {erro}
@@ -149,9 +155,9 @@ export default function LandingPage() {
                             </div>
                         )}
 
-                        {modoMagicLink && (
+                        {modoRecuperarSenha && (
                             <p className="text-slate-500 text-sm text-center">
-                                Digite seu e-mail e enviaremos um link para acessar sua conta.
+                                Digite seu e-mail e enviaremos um link para redefinir sua senha.
                             </p>
                         )}
 
@@ -167,7 +173,7 @@ export default function LandingPage() {
                             />
                         </div>
 
-                        {!modoMagicLink && (
+                        {!modoRecuperarSenha && (
                             <div>
                                 <div className="relative">
                                     <input
@@ -194,20 +200,20 @@ export default function LandingPage() {
                             <button
                                 type="submit"
                                 disabled={isLoading}
-                                className={`w-full ${modoMagicLink ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'} disabled:opacity-50 text-white font-medium py-[12px] rounded transition-colors flex items-center justify-center gap-2 text-[15.5px] shadow-md active:scale-[0.98]`}
+                                className={`w-full ${modoRecuperarSenha ? 'bg-yellow-500 hover:bg-yellow-600 shadow-yellow-500/20' : 'bg-blue-600 hover:bg-blue-700 shadow-blue-600/20'} disabled:opacity-50 text-white font-medium py-[12px] rounded transition-colors flex items-center justify-center gap-2 text-[15.5px] shadow-md active:scale-[0.98]`}
                             >
-                                {isLoading ? <Loader2 size={16} strokeWidth={2.5} className="animate-spin" /> : modoMagicLink ? <Mail size={16} strokeWidth={2.5} /> : <Lock size={16} strokeWidth={2.5} />}
-                                {isLoading ? 'ENVIANDO...' : modoMagicLink ? 'ENVIAR LINK DE ACESSO' : 'ENTRAR'}
+                                {isLoading ? <Loader2 size={16} strokeWidth={2.5} className="animate-spin" /> : modoRecuperarSenha ? <Mail size={16} strokeWidth={2.5} /> : <Lock size={16} strokeWidth={2.5} />}
+                                {isLoading ? 'ENVIANDO...' : modoRecuperarSenha ? 'ENVIAR LINK DE RECUPERAÇÃO' : 'ENTRAR'}
                             </button>
                         </div>
 
                         <div className="text-center mt-6">
                             <button
                                 type="button"
-                                onClick={() => { setModoMagicLink(!modoMagicLink); setErro(''); setSucesso('') }}
+                                onClick={() => { setModoRecuperarSenha(!modoRecuperarSenha); setErro(''); setSucesso('') }}
                                 className="text-[13.5px] text-slate-500 hover:text-blue-600 font-medium transition-colors"
                             >
-                                {modoMagicLink ? '← Voltar ao login com senha' : 'Esqueceu sua senha?'}
+                                {modoRecuperarSenha ? '← Voltar ao login com senha' : 'Esqueceu sua senha?'}
                             </button>
                         </div>
                     </form>

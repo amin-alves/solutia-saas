@@ -3,6 +3,7 @@ import LandingPage from './pages/LandingPage'
 import SistemaLayout from './layouts/SistemaLayout'
 import Dashboard from './pages/Dashboard'
 import Documentos from './pages/Documentos'
+import UpdatePassword from './pages/UpdatePassword'
 
 export default function App() {
     return (
@@ -15,6 +16,9 @@ export default function App() {
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="documentos" element={<Documentos />} />
                 </Route>
+
+                {/* Rota de Atualização de Senha */}
+                <Route path="/update-password" element={<UpdatePassword />} />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
