@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react"
 import BiMetrics from "../components/dashboard/BiMetrics"
 import WorkflowBoard from "../components/dashboard/WorkflowBoard"
+import TramitacaoPanel from "../components/dashboard/TramitacaoPanel"
 import { PanelRight, X, ChevronUp, ChevronDown, Download, Trash2, Pen, Upload, Eye, FileText, Info, ChevronRight as ChevronRightIcon, Loader2, FolderInput } from "lucide-react"
 import { supabase } from '@/lib/supabase'
 
@@ -334,11 +335,9 @@ export default function Dashboard() {
                 {/* ═══ Painel Central Inferior (Processos) ═══ */}
                 <div className="overflow-hidden flex flex-col bg-gray-50 dark:bg-gray-900 border border-transparent dark:border-gray-800 rounded-lg relative" style={{ height: `calc(${100 - centerTopHeight}% - 0.375rem)` }}>
 
-                    {/* Visualização da Visão Geral (Meio Acima) */}
-                    <div className={`flex-1 overflow-y-auto p-4 md:p-6 flex flex-col items-center flex-start text-center ${showProcessosBiMetrics ? 'h-[55%]' : 'h-[calc(100%-3rem)]'}`}>
-                        <div className="w-20 h-20 mt-10 rounded-2xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center mb-4 text-green-600"><PanelRight size={38} className="transform rotate-180" /></div>
-                        <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">Visão Geral Processos</h2>
-                        <p className="text-base text-gray-500 max-w-md mb-6">Aqui será construída a área de exibir o funil e informações específicas referentes aos processos atuais das esteiras.</p>
+                    {/* Tramitações */}
+                    <div className={`flex-1 overflow-hidden ${showProcessosBiMetrics ? 'h-[55%]' : 'h-[calc(100%-3rem)]'}`}>
+                        <TramitacaoPanel />
                     </div>
 
                     {/* Área BI Toggle 2 (Abaixo no Meio) */}
