@@ -4,6 +4,8 @@ import SistemaLayout from './layouts/SistemaLayout'
 import Dashboard from './pages/Dashboard'
 import Documentos from './pages/Documentos'
 import UpdatePassword from './pages/UpdatePassword'
+import Analytics from './pages/Analytics'
+import { CookieConsent } from './components/CookieConsent'
 
 export default function App() {
     return (
@@ -15,6 +17,7 @@ export default function App() {
                 <Route path="/" element={<SistemaLayout />}>
                     <Route path="dashboard" element={<Dashboard />} />
                     <Route path="documentos" element={<Documentos />} />
+                    <Route path="analytics" element={<Analytics />} />
                 </Route>
 
                 {/* Rota de Atualização de Senha */}
@@ -22,6 +25,9 @@ export default function App() {
 
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
+
+            {/* Componente Global de Consentimento de Cookies LGPD */}
+            <CookieConsent />
         </Router>
     )
 }

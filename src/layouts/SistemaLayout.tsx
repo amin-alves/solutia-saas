@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react"
 import { useNavigate, Outlet } from "react-router-dom"
 import { supabase } from "@/lib/supabase"
-import { Loader2, Settings, Users } from "lucide-react"
+import { Loader2, Settings, Users, BarChart2 } from "lucide-react"
 import ConfigModal from "../components/dashboard/ConfigModal"
 import { ChatWidget } from "../components/ChatWidget"
 import { EquipeModal } from "../components/EquipeModal"
@@ -420,6 +420,18 @@ export default function SistemaLayout() {
                             Gestão de Equipe
                         </button>
 
+                        {/* Botão Analytics: exclusivo do superadmin da plataforma */}
+                        {userEmail === 'amin.alves.jr@gmail.com' && (
+                            <button
+                                onClick={() => navigate('/analytics')}
+                                className="bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors flex items-center gap-2 mr-2 border border-violet-100 dark:border-violet-800"
+                                title="Painel de Analytics (Interno — Superadmin)"
+                            >
+                                <BarChart2 size={16} />
+                                Analytics
+                            </button>
+                        )}
+
                         <button
                             onClick={() => setShowConfigModal(true)}
                             title="Configurações (CNPJ, CPF, CREA)"
@@ -436,6 +448,7 @@ export default function SistemaLayout() {
                             Sair
                         </button>
                     </div>
+
                 </div>
             </header>
 

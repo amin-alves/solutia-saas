@@ -4,6 +4,7 @@ import WorkflowBoard from "../components/dashboard/WorkflowBoard"
 import TramitacaoPanel from "../components/dashboard/TramitacaoPanel"
 import { PanelRight, X, ChevronUp, ChevronDown, Download, Trash2, Pen, Upload, Eye, FileText, Info, ChevronRight as ChevronRightIcon, Loader2, FolderInput } from "lucide-react"
 import { supabase } from '@/lib/supabase'
+import { trackEvent } from '@/lib/analytics'
 
 import { DocumentTree } from '@/components/documents/DocumentTree'
 import { FileUploader } from '@/components/documents/FileUploader'
@@ -40,6 +41,9 @@ export default function Dashboard() {
     const [centerTopHeight, setCenterTopHeight] = useState(50)
     const [showBiMetrics, setShowBiMetrics] = useState(false)
     const [showProcessosBiMetrics, setShowProcessosBiMetrics] = useState(false)
+
+    // --- Analytics: registra acesso à página ---
+    useEffect(() => { trackEvent('view_dashboard') }, [])
 
     const containerRef = useRef<HTMLDivElement>(null)
     const draggingRef = useRef<'left' | 'right' | 'center' | null>(null)
@@ -160,6 +164,7 @@ export default function Dashboard() {
             a.click()
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
+            trackEvent('download_documento', { extensao: selectedDoc.extensao || 'desconhecido' })
         } catch (e) {
             console.error('Erro no download:', e)
             alert('Erro ao baixar arquivo.')

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
+import { trackEvent } from '@/lib/analytics'
 import {
     Download, Trash2, Pen, Upload, Eye,
     FileText, Info, ChevronRight, X, Loader2, FolderInput
@@ -34,6 +35,9 @@ interface Pasta {
 
 export default function DocumentosPage() {
     const empresaId = localStorage.getItem('solutia_empresa_id') || ''
+
+    // --- Analytics: registra acesso à página ---
+    useEffect(() => { trackEvent('view_documentos') }, [])
 
     const [selectedDoc, setSelectedDoc] = useState<Documento | null>(null)
     const [selectedFolder, setSelectedFolder] = useState<Pasta | null>(null)
@@ -116,6 +120,7 @@ export default function DocumentosPage() {
             a.click()
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
+            trackEvent('download_documento', { extensao: selectedDoc.extensao || 'desconhecido' })
         } catch (e) {
             console.error('Erro no download:', e)
             alert('Erro ao baixar arquivo.')
