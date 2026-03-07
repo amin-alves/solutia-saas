@@ -1,21 +1,25 @@
 import { useEffect, useState, useRef } from "react"
-import { useNavigate, Outlet } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import { supabase } from "@/lib/supabase"
 import { Loader2, Settings, Users, BarChart2 } from "lucide-react"
 import ConfigModal from "../components/dashboard/ConfigModal"
 import { ChatWidget } from "../components/ChatWidget"
 import { EquipeModal } from "../components/EquipeModal"
+import { useUserPreferences } from "@/contexts/UserPreferencesContext"
 
-export default function SistemaLayout() {
-    const navigate = useNavigate()
-    const [user, setUser] = useState<string | null>(localStorage.getItem("solutia_user"))
-    const [empresa, setEmpresa] = useState<string | null>(localStorage.getItem("solutia_empresa_nome"))
-    const [empresaId, setEmpresaId] = useState<string | null>(localStorage.getItem("solutia_empresa_id"))
-    const [empresaCnpj, setEmpresaCnpj] = useState<string | null>(localStorage.getItem("solutia_empresa_cnpj"))
-    const [logoUrl, setLogoUrl] = useState<string | null>(localStorage.getItem("solutia_empresa_logo"))
-    const [userCargo, setUserCargo] = useState<string | null>(localStorage.getItem("solutia_user_cargo"))
-    const [userCpf, setUserCpf] = useState<string | null>(localStorage.getItem("solutia_user_cpf"))
-    const [userRegistro, setUserRegistro] = useState<string | null>(localStorage.getItem("solutia_user_registro"))
+const getStoredValue = (key: string) => (typeof window !== 'undefined' ? localStorage.getItem(key) : null)
+
+export default function SistemaLayout({ children }: { children: React.ReactNode }) {
+    const router = useRouter()
+    const { preferences, setThemeColor, setUserScope } = useUserPreferences()
+    const [user, setUser] = useState<string | null>(() => getStoredValue("solutia_user"))
+    const [empresa, setEmpresa] = useState<string | null>(() => getStoredValue("solutia_empresa_nome"))
+    const [empresaId, setEmpresaId] = useState<string | null>(() => getStoredValue("solutia_empresa_id"))
+    const [empresaCnpj, setEmpresaCnpj] = useState<string | null>(() => getStoredValue("solutia_empresa_cnpj"))
+    const [logoUrl, setLogoUrl] = useState<string | null>(() => getStoredValue("solutia_empresa_logo"))
+    const [userCargo, setUserCargo] = useState<string | null>(() => getStoredValue("solutia_user_cargo"))
+    const [userCpf, setUserCpf] = useState<string | null>(() => getStoredValue("solutia_user_cpf"))
+    const [userRegistro, setUserRegistro] = useState<string | null>(() => getStoredValue("solutia_user_registro"))
 
     // UI States
     const [loading, setLoading] = useState(true)
@@ -29,6 +33,18 @@ export default function SistemaLayout() {
     const [isEditingEmpresa, setIsEditingEmpresa] = useState(false)
     const [tempEmpresa, setTempEmpresa] = useState('')
 
+    const THEME_COLORS = [
+        { name: 'indigo', code: '#4f46e5' }, { name: 'blue', code: '#2563eb' },
+        { name: 'sky', code: '#0284c7' }, { name: 'cyan', code: '#0891b2' },
+        { name: 'teal', code: '#0d9488' }, { name: 'emerald', code: '#059669' },
+        { name: 'green', code: '#16a34a' }, { name: 'lime', code: '#65a30d' },
+        { name: 'yellow', code: '#ca8a04' }, { name: 'amber', code: '#d97706' },
+        { name: 'orange', code: '#ea580c' }, { name: 'red', code: '#dc2626' },
+        { name: 'rose', code: '#e11d48' }, { name: 'pink', code: '#db2777' },
+        { name: 'fuchsia', code: '#c026d3' }, { name: 'purple', code: '#9333ea' }
+    ]
+    const [showPalette, setShowPalette] = useState(false)
+
     const [isEditingUser, setIsEditingUser] = useState(false)
     const [tempUser, setTempUser] = useState('')
 
@@ -36,6 +52,7 @@ export default function SistemaLayout() {
     const [tempCargo, setTempCargo] = useState('')
 
     const fileInputRef = useRef<HTMLInputElement>(null)
+    const paletteRef = useRef<HTMLDivElement>(null)
 
     // Initialize theme on mount
     useEffect(() => {
@@ -46,13 +63,31 @@ export default function SistemaLayout() {
     }, []);
 
     useEffect(() => {
+        // Set root CSS variable for primary color so other pages can consume it
+        document.documentElement.style.setProperty('--primary-color', preferences.themeColor)
+        // Also a faded version for backgrounds
+        document.documentElement.style.setProperty('--primary-color-light', `${preferences.themeColor}20`)
+    }, [preferences.themeColor])
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (paletteRef.current && !paletteRef.current.contains(event.target as Node)) {
+                setShowPalette(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    useEffect(() => {
         let isMounted = true
 
         const checkSession = async () => {
             const { data: { session } } = await supabase.auth.getSession()
 
             if (!session) {
-                if (isMounted) navigate("/")
+                if (isMounted) router.replace("/")
                 return
             }
 
@@ -70,6 +105,7 @@ export default function SistemaLayout() {
                     const logoDb = empresaRef?.logo_url || null;
                     const cnpjDb = empresaRef?.cnpj || null;
 
+                    setUserScope(session.user.id)
                     setPerfilId(session.user.id)
                     setUserEmail(session.user.email ?? "");
                     setUser(perfilData.nome || session.user.email)
@@ -108,6 +144,7 @@ export default function SistemaLayout() {
                     localStorage.setItem("solutia_user_registro", perfilData.registro_profissional || "")
 
                 } else {
+                    setUserScope(session.user.id)
                     setUser(session.user.email ?? "Usuário")
                     setEmpresa("Empresa Desconhecida")
                     setLogoUrl(null)
@@ -134,7 +171,7 @@ export default function SistemaLayout() {
         // Listener para deslogar imediatamente caso a sessão expire
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (!session && isMounted) {
-                navigate("/")
+                router.replace("/")
             }
         })
 
@@ -142,7 +179,7 @@ export default function SistemaLayout() {
             isMounted = false
             subscription.unsubscribe()
         }
-    }, [navigate])
+    }, [router, setUserScope])
 
     async function logout() {
         await supabase.auth.signOut()
@@ -155,7 +192,7 @@ export default function SistemaLayout() {
         localStorage.removeItem("solutia_user_cargo")
         localStorage.removeItem("solutia_user_cpf")
         localStorage.removeItem("solutia_user_registro")
-        navigate("/")
+        router.replace("/")
     }
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,8 +326,8 @@ export default function SistemaLayout() {
                 <EquipeModal onClose={() => setShowEquipeModal(false)} />
             )}
 
-            <header className="bg-white dark:bg-gray-800 shadow dark:shadow-gray-900/50 px-8 py-3 flex justify-between items-center shrink-0 sticky top-0 z-30 transition-colors duration-300">
-                <div className="flex items-center gap-3">
+            <header className={`bg-white dark:bg-gray-800 shadow dark:shadow-gray-900/50 px-4 ${preferences.compactMode ? 'py-1' : 'py-1.5'} flex justify-between items-center shrink-0 sticky top-0 z-30 transition-colors duration-300`}>
+                <div className="flex items-center gap-2">
                     <div
                         className="cursor-pointer hover:opacity-80 transition-opacity"
                         title="Clique para alterar a logo da empresa"
@@ -309,13 +346,13 @@ export default function SistemaLayout() {
                         />
 
                         {isUploading ? (
-                            <div className="h-8 w-8 bg-indigo-50 dark:bg-indigo-900/30 rounded-lg flex items-center justify-center">
-                                <Loader2 className="w-5 h-5 animate-spin text-indigo-600 dark:text-indigo-400" />
+                            <div className="h-6 w-6 rounded flex items-center justify-center" style={{ backgroundColor: 'var(--primary-color-light)' }}>
+                                <Loader2 className="w-4 h-4 animate-spin" style={{ color: 'var(--primary-color)' }} />
                             </div>
                         ) : logoUrl ? (
-                            <img src={logoUrl} alt={`Logo ${empresa}`} className="h-8 w-auto object-contain" />
+                            <img src={logoUrl} alt={`Logo ${empresa}`} className="h-6 w-auto object-contain" />
                         ) : (
-                            <div className="h-8 w-8 bg-indigo-100 dark:bg-indigo-900/40 rounded-lg flex items-center justify-center text-indigo-700 dark:text-indigo-300 font-bold shrink-0">
+                            <div className="h-6 w-6 rounded flex items-center justify-center font-bold shrink-0 text-sm" style={{ backgroundColor: 'var(--primary-color-light)', color: 'var(--primary-color)' }}>
                                 {empresa ? empresa.charAt(0) : 'S'}
                             </div>
                         )}
@@ -355,7 +392,34 @@ export default function SistemaLayout() {
 
                 </div>
 
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-1.5">
+
+                    {/* Theme Picker */}
+                    <div className="relative" ref={paletteRef}>
+                        <button
+                            onClick={() => setShowPalette(!showPalette)}
+                            className="w-5 h-5 rounded-full shadow-sm border border-gray-200 dark:border-gray-600 transition-transform hover:scale-110"
+                            style={{ backgroundColor: preferences.themeColor }}
+                            title="Alterar cor do layout"
+                        />
+                        {showPalette && (
+                            <div className="absolute right-0 top-8 bg-white dark:bg-gray-800 shadow-xl border border-gray-100 dark:border-gray-700 rounded-lg p-2 z-50 grid grid-cols-4 gap-1.5 w-32">
+                                {THEME_COLORS.map(c => (
+                                    <button
+                                        key={c.name}
+                                        onClick={() => {
+                                            setThemeColor(c.code)
+                                            setShowPalette(false)
+                                        }}
+                                        className={`w-5 h-5 rounded hover:scale-110 transition-transform ${preferences.themeColor === c.code ? 'ring-2 ring-offset-1 ring-gray-400' : ''}`}
+                                        style={{ backgroundColor: c.code }}
+                                        title={c.name}
+                                    />
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     <div className="text-right flex flex-col justify-center">
                         {/* Edição Inline do Usuário */}
                         {isEditingUser ? (
@@ -411,23 +475,24 @@ export default function SistemaLayout() {
                         </p>
                     </div>
 
-                    <div className="flex items-center gap-2 border-l border-gray-200 dark:border-gray-700 pl-4">
+                    <div className="flex items-center gap-1.5 border-l border-gray-200 dark:border-gray-700 pl-3">
                         <button
                             onClick={() => setShowEquipeModal(true)}
-                            className="bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-2 mr-2 border border-indigo-100 dark:border-indigo-800"
+                            className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 mr-1 border"
+                            style={{ backgroundColor: 'var(--primary-color-light)', color: 'var(--primary-color)', borderColor: 'var(--primary-color-light)' }}
                         >
-                            <Users size={16} />
+                            <Users size={14} />
                             Gestão de Equipe
                         </button>
 
                         {/* Botão Analytics: exclusivo do superadmin da plataforma */}
                         {userEmail === 'amin.alves.jr@gmail.com' && (
                             <button
-                                onClick={() => navigate('/analytics')}
-                                className="bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-violet-100 dark:hover:bg-violet-900/50 transition-colors flex items-center gap-2 mr-2 border border-violet-100 dark:border-violet-800"
+                                onClick={() => router.push('/analytics')}
+                                className="px-2.5 py-1 rounded-lg text-xs font-medium transition-colors flex items-center gap-1.5 mr-1 border border-violet-100 dark:border-violet-800 bg-violet-50 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300"
                                 title="Painel de Analytics (Interno — Superadmin)"
                             >
-                                <BarChart2 size={16} />
+                                <BarChart2 size={14} />
                                 Analytics
                             </button>
                         )}
@@ -435,15 +500,16 @@ export default function SistemaLayout() {
                         <button
                             onClick={() => setShowConfigModal(true)}
                             title="Configurações (CNPJ, CPF, CREA)"
-                            className="p-2 text-gray-400 dark:text-gray-500 hover:text-indigo-600 dark:hover:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded-lg transition-colors"
+                            className="p-1.5 text-gray-400 dark:text-gray-500 rounded-lg transition-colors"
+                            style={{ color: showConfigModal ? 'var(--primary-color)' : undefined, backgroundColor: showConfigModal ? 'var(--primary-color-light)' : undefined }}
                         >
-                            <Settings className="w-5 h-5" />
+                            <Settings className="w-4 h-4" />
                         </button>
 
                         <button
                             onClick={logout}
                             title="Sair do sistema"
-                            className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition"
+                            className="bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-2.5 py-1 rounded-lg text-xs font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition"
                         >
                             Sair
                         </button>
@@ -452,13 +518,13 @@ export default function SistemaLayout() {
                 </div>
             </header>
 
-            <main className="flex-1 overflow-y-auto p-8 transition-colors duration-300">
-                <Outlet />
+            <main className={`flex-1 overflow-y-auto ${preferences.compactMode ? 'p-2.5' : 'p-4'} transition-colors duration-300`}>
+                {children}
             </main>
 
             {/* Footer fixo */}
-            <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-8 py-2 flex items-center justify-between shrink-0 sticky bottom-0 z-30 transition-colors duration-300">
-                <span className="text-xs text-gray-400 dark:text-gray-500">© {new Date().getFullYear()} Solutia — Sistema de Gestão</span>
+            <footer className={`bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 px-4 ${preferences.compactMode ? 'py-0.5' : 'py-1'} flex items-center justify-between shrink-0 sticky bottom-0 z-30 transition-colors duration-300`}>
+                <span className="text-xs text-gray-400 dark:text-gray-500"> {new Date().getFullYear()} Solutia — Sistema de Gestão</span>
                 <span className="text-xs text-gray-400 dark:text-gray-500">v1.0.0</span>
             </footer>
 

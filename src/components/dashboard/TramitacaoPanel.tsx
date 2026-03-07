@@ -31,7 +31,7 @@ export default function TramitacaoPanel() {
     const [filtro, setFiltro] = useState<'todas' | 'enviadas' | 'recebidas'>('todas')
     const [showModal, setShowModal] = useState(false)
     const [userId, setUserId] = useState<string | null>(null)
-    const empresaId = localStorage.getItem('solutia_empresa_id') || ''
+    const empresaId = typeof window !== 'undefined' ? (localStorage.getItem('solutia_empresa_id') || '') : ''
 
     useEffect(() => {
         supabase.auth.getUser().then(({ data }) => {

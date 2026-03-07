@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { X, Save, Loader2, Building, User, Sun, Moon, Monitor } from 'lucide-react';
+import { useUserPreferences } from '@/contexts/UserPreferencesContext';
 
 interface ConfigModalProps {
     empresaId: string;
@@ -26,20 +27,7 @@ export default function ConfigModal({
     const [registro, setRegistro] = useState(initialRegistro);
     const [isSaving, setIsSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-
-    // Theme state
-    const [theme, setTheme] = useState<'light' | 'dark'>(() => {
-        return (localStorage.getItem('solutia_theme') as 'light' | 'dark') || 'light';
-    });
-
-    useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        localStorage.setItem('solutia_theme', theme);
-    }, [theme]);
+    const { preferences, setThemeMode, setCompactMode } = useUserPreferences();
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -106,9 +94,9 @@ export default function ConfigModal({
 
                         <div className="flex items-center gap-3">
                             <button
-                                onClick={() => setTheme('light')}
+                                onClick={() => setThemeMode('light')}
                                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all duration-200 cursor-pointer
-                                    ${theme === 'light'
+                                    ${preferences.themeMode === 'light'
                                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm'
                                         : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                                     }`}
@@ -117,9 +105,9 @@ export default function ConfigModal({
                                 Claro
                             </button>
                             <button
-                                onClick={() => setTheme('dark')}
+                                onClick={() => setThemeMode('dark')}
                                 className={`flex-1 flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all duration-200 cursor-pointer
-                                    ${theme === 'dark'
+                                    ${preferences.themeMode === 'dark'
                                         ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm'
                                         : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'
                                     }`}
@@ -128,6 +116,14 @@ export default function ConfigModal({
                                 Escuro
                             </button>
                         </div>
+
+                        <button
+                            onClick={() => setCompactMode(!preferences.compactMode)}
+                            className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl text-sm font-medium border-2 transition-all duration-200 cursor-pointer ${preferences.compactMode ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 shadow-sm' : 'border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500'}`}
+                        >
+                            <Monitor className="w-5 h-5" />
+                            {preferences.compactMode ? 'Modo compacto ativado' : 'Ativar modo compacto'}
+                        </button>
                     </div>
 
                     {/* Sessão Empresa */}

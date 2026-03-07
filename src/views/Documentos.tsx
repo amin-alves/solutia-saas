@@ -33,8 +33,18 @@ interface Pasta {
     empresa_id: string
 }
 
+const GENERAL_FOLDER_NAME = 'Geral'
+
+const normalizeText = (value: string) => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+const isProtectedDocument = (doc: Documento) => normalizeText(doc.titulo).startsWith('termo de uso')
+
 export default function DocumentosPage() {
-    const empresaId = localStorage.getItem('solutia_empresa_id') || ''
+    const empresaId = typeof window !== 'undefined' ? (localStorage.getItem('solutia_empresa_id') || '') : ''
 
     // --- Analytics: registra acesso à página ---
     useEffect(() => { trackEvent('view_documentos') }, [])
@@ -55,6 +65,7 @@ export default function DocumentosPage() {
     const isPreviewable = selectedDoc?.extensao ? PREVIEWABLE.includes(selectedDoc.extensao.toLowerCase()) : false
     const isOffice = selectedDoc?.extensao ? OFFICE_TYPES.includes(selectedDoc.extensao.toLowerCase()) : false
     const isImage = selectedDoc?.extensao ? IMAGE_TYPES.includes(selectedDoc.extensao.toLowerCase()) : false
+    const generalFolder = pastas.find((p) => normalizeText(p.nome) === normalizeText(GENERAL_FOLDER_NAME))
 
     // Auto-load preview when document is selected
     useEffect(() => {
@@ -136,6 +147,11 @@ export default function DocumentosPage() {
             return
         }
 
+        if (isProtectedDocument(selectedDoc)) {
+            alert('🔒 O arquivo "Termo de Uso" é obrigatório e não pode ser excluído.')
+            return
+        }
+
         if (!confirm(`Excluir "${selectedDoc.titulo}" permanentemente?`)) return
 
         try {
@@ -204,6 +220,7 @@ export default function DocumentosPage() {
                 <div className="w-72 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden flex flex-col shrink-0">
                     <DocumentTree
                         empresaId={empresaId}
+                        viewKey="documentos"
                         onSelectDocument={(doc) => { setSelectedDoc(doc); setSelectedFolder(null) }}
                         onSelectFolder={(pasta) => { setSelectedFolder(pasta); setSelectedDoc(null) }}
                         selectedDocId={selectedDoc?.id}
@@ -275,15 +292,19 @@ export default function DocumentosPage() {
                                     </button>
                                     <button
                                         onClick={handleDelete}
-                                        disabled={selectedDoc.assinado}
+                                        disabled={selectedDoc.assinado || isProtectedDocument(selectedDoc)}
                                         className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ml-auto
-                                            ${selectedDoc.assinado
+                                            ${selectedDoc.assinado || isProtectedDocument(selectedDoc)
                                                 ? 'text-gray-400 bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 cursor-not-allowed opacity-50'
                                                 : 'text-red-600 bg-white dark:bg-gray-700 border border-red-200 dark:border-red-800 hover:bg-red-50 dark:hover:bg-red-900/20'
                                             }`}
-                                        title={selectedDoc.assinado ? 'Documento assinado não pode ser excluído' : 'Excluir documento'}
+                                        title={selectedDoc.assinado
+                                            ? 'Documento assinado não pode ser excluído'
+                                            : isProtectedDocument(selectedDoc)
+                                                ? 'Termo de Uso não pode ser excluído'
+                                                : 'Excluir documento'}
                                     >
-                                        {selectedDoc.assinado ? '🔒' : <Trash2 size={16} />} Excluir
+                                        {selectedDoc.assinado || isProtectedDocument(selectedDoc) ? '🔒' : <Trash2 size={16} />} Excluir
                                     </button>
                                 </div>
                             </div>
@@ -399,11 +420,11 @@ export default function DocumentosPage() {
                             <p className="text-sm text-gray-500 mb-4">
                                 {selectedFolder
                                     ? `Enviando para: ${selectedFolder.nome}`
-                                    : 'O arquivo será enviado sem pasta (raiz).'}
+                                    : `O arquivo será enviado para: ${GENERAL_FOLDER_NAME}.`}
                             </p>
                             <FileUploader
                                 empresaId={empresaId}
-                                pastaId={selectedFolder?.id || null}
+                                pastaId={selectedFolder?.id || generalFolder?.id || null}
                                 onUploadComplete={() => { refresh(); setShowUploader(false) }}
                             />
                         </div>
@@ -438,15 +459,16 @@ export default function DocumentosPage() {
                             </button>
                         </div>
                         <div className="p-4 max-h-[400px] overflow-y-auto space-y-1">
-                            {/* Raiz (sem pasta) */}
-                            <button
-                                onClick={() => handleMove(null, 'Geral')}
-                                className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
-                                    ${!selectedDoc.pasta_id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
-                            >
-                                <FileText size={16} className="text-gray-400" /> Raiz (sem pasta)
-                            </button>
-                            {pastas.map(p => (
+                            {generalFolder && (
+                                <button
+                                    onClick={() => handleMove(generalFolder.id, GENERAL_FOLDER_NAME)}
+                                    className={`w-full text-left px-4 py-3 rounded-lg text-sm font-medium transition-colors flex items-center gap-2
+                                        ${selectedDoc.pasta_id === generalFolder.id ? 'bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300' : 'hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'}`}
+                                >
+                                    <FileText size={16} className="text-gray-400" /> {GENERAL_FOLDER_NAME}
+                                </button>
+                            )}
+                            {pastas.filter((p) => p.id !== generalFolder?.id).map(p => (
                                 <button
                                     key={p.id}
                                     onClick={() => handleMove(p.id, p.nome)}

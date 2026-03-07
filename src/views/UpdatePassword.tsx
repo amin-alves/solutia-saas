@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import { Lock, Loader2 } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 export default function UpdatePassword() {
-    const navigate = useNavigate()
+    const router = useRouter()
     const [novaSenha, setNovaSenha] = useState("")
     const [confirmarSenha, setConfirmarSenha] = useState("")
     const [erro, setErro] = useState("")
@@ -48,7 +48,7 @@ export default function UpdatePassword() {
                 localStorage.setItem("solutia_auth", "true")
                 setSucesso("Senha atualizada com sucesso! Redirecionando...")
                 setTimeout(() => {
-                    navigate("/dashboard", { replace: true })
+                    router.replace("/dashboard")
                 }, 2000)
             }
         } catch (error) {

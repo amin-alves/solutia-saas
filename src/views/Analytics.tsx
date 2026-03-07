@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import {
     Activity,
@@ -52,7 +52,7 @@ const eventLabel: Record<string, string> = {
 
 // ─── Componente Principal ───────────────────────────────────────────────────
 export default function Analytics() {
-    const navigate = useNavigate()
+    const router = useRouter()
     const [rows, setRows] = useState<AnalyticsRow[]>([])
     const [loading, setLoading] = useState(true)
     const [filter, setFilter] = useState<string>('todos')
@@ -65,12 +65,12 @@ export default function Analytics() {
         supabase.auth.getSession().then(({ data: { session } }) => {
             const email = session?.user?.email ?? ''
             if (email !== SUPERADMIN_EMAIL) {
-                navigate('/dashboard', { replace: true })
+                router.replace('/dashboard')
             } else {
                 setAuthorized(true)
             }
         })
-    }, [navigate])
+    }, [router])
 
     const fetchData = async () => {
         setRefreshing(true)
