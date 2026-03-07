@@ -8,6 +8,14 @@ interface FileUploaderProps {
     onUploadComplete: () => void
 }
 
+const GENERAL_FOLDER_NAME = 'Geral'
+
+const normalizeText = (value: string) => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
 export function FileUploader({ empresaId, pastaId, onUploadComplete }: FileUploaderProps) {
     const [isDragging, setIsDragging] = useState(false)
     const [_uploading, setUploading] = useState(false)
@@ -16,6 +24,42 @@ export function FileUploader({ empresaId, pastaId, onUploadComplete }: FileUploa
 
     const processFiles = useCallback(async (files: File[]) => {
         if (files.length === 0) return
+
+        let targetPastaId = pastaId
+        if (!targetPastaId) {
+            const { data: existingFolders, error: foldersError } = await supabase
+                .from('pastas')
+                .select('id, nome')
+                .eq('empresa_id', empresaId)
+
+            if (foldersError) {
+                alert('Erro ao localizar a pasta Geral: ' + foldersError.message)
+                return
+            }
+
+            const existingGeneral = (existingFolders || []).find((folder) => normalizeText(folder.nome) === normalizeText(GENERAL_FOLDER_NAME))
+
+            if (existingGeneral) {
+                targetPastaId = existingGeneral.id
+            } else {
+                const { data: createdGeneral, error: createGeneralError } = await supabase
+                    .from('pastas')
+                    .insert({
+                        empresa_id: empresaId,
+                        nome: GENERAL_FOLDER_NAME,
+                        pasta_pai_id: null,
+                    })
+                    .select('id')
+                    .single()
+
+                if (createGeneralError || !createdGeneral) {
+                    alert('Erro ao criar a pasta Geral: ' + (createGeneralError?.message || 'desconhecido'))
+                    return
+                }
+
+                targetPastaId = createdGeneral.id
+            }
+        }
 
         setUploading(true)
         const queue = files.map(f => ({ name: f.name, status: 'pending' as const }))
@@ -41,8 +85,8 @@ export function FileUploader({ empresaId, pastaId, onUploadComplete }: FileUploa
                 const docData = {
                     titulo: file.name.replace(/\.[^.]+$/, ''), // Remove extensão do título
                     empresa_id: empresaId,
-                    pasta_id: pastaId,
-                    pasta: 'Geral', // campo legado NOT NULL
+                    pasta_id: targetPastaId,
+                    pasta: GENERAL_FOLDER_NAME, // campo legado NOT NULL
                     status: 'finalizado',
                     extensao: ext,
                     mime_type: file.type,

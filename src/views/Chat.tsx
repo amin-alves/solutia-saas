@@ -31,7 +31,7 @@ interface Perfil {
 }
 
 export default function Chat() {
-    const empresaId = localStorage.getItem('solutia_empresa_id') || ''
+    const empresaId = typeof window !== 'undefined' ? (localStorage.getItem('solutia_empresa_id') || '') : ''
     const [userId, setUserId] = useState<string | null>(null)
 
     const [conversas, setConversas] = useState<Conversa[]>([])

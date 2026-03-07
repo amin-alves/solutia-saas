@@ -1,85 +1,96 @@
 # Solutia Docs
 
-Sistema de gestão documental inteligente para empresas.
+Sistema de gestão documental inteligente para empresas, com autenticação Supabase, gestão de documentos, tramitação e analytics.
 
-## 🛠️ Stack
+## Stack
 
 | Tecnologia | Uso |
-|-----------|-----|
-| **Vite** + **React 18** | Framework frontend |
-| **TypeScript** | Tipagem estática |
-| **Tailwind CSS v4** | Estilização (com dark mode) |
-| **Supabase** | Auth, banco de dados e storage |
-| **Supabase Edge Functions** | Convites de usuários |
-| **Vercel** | Deploy e hosting |
-| **Lucide React** | Ícones |
+|---|---|
+| Next.js 16 (App Router) | Framework web |
+| React 18 + TypeScript | UI e tipagem |
+| Tailwind CSS v4 | Estilização |
+| Supabase | Auth, banco e storage |
+| Lucide React | Ícones |
 
-## 🚀 Rodando Localmente
-
-### Pré-requisitos
+## Pré-requisitos
 
 - Node.js 18+
 - npm
 
-### Instalação
+## Instalação
 
 ```bash
-# Clonar o repositório
 git clone https://github.com/amin-alves/solutia-saas.git
 cd solutia-saas
-
-# Instalar dependências
 npm install
 ```
 
-### Configurar variáveis de ambiente
+## Variáveis de ambiente
 
-Crie um arquivo `.env.local` na raiz do projeto:
+Crie o arquivo `.env.local` na raiz:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://seu-projeto.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-anon-key
 ```
 
-### Rodar o servidor de desenvolvimento
+## Scripts
 
 ```bash
-npm run dev
+npm run dev    # desenvolvimento
+npm run build  # build de produção
+npm run start  # iniciar build de produção
+npm run typecheck # valida tipagem TypeScript
+npm run check  # typecheck + build
 ```
 
-Abra [http://localhost:5173](http://localhost:5173) no navegador.
+Aplicação local: [http://localhost:3000](http://localhost:3000)
 
-## 📁 Estrutura do Projeto
+## Estrutura principal
 
-```
+```text
 src/
-├── components/       # Componentes reutilizáveis
-│   ├── dashboard/    # ConfigModal, Chat, etc.
-│   └── documents/    # DocumentTree, DocumentEditor
-├── layouts/          # SistemaLayout (layout principal)
-├── lib/              # supabase.ts (client)
-├── pages/            # LandingPage, Dashboard
-└── index.css         # Estilos base + dark mode
-
-supabase/
-└── functions/
-    └── invite-user/  # Edge Function para convites
+├── app/                     # Rotas Next.js (App Router)
+│   ├── layout.tsx           # Root layout
+│   ├── page.tsx             # Login (/)
+│   ├── update-password/     # /update-password
+│   └── (sistema)/           # Rotas privadas com layout compartilhado
+│       ├── dashboard/
+│       ├── documentos/
+│       └── analytics/
+├── components/              # Componentes reutilizáveis
+├── contexts/                # Contextos globais (preferências do usuário)
+├── layouts/                 # Layout funcional do sistema
+├── lib/                     # Clientes e utilitários (Supabase)
+├── views/                   # Telas reutilizadas pelas rotas app/
+└── index.css                # Tailwind + estilos globais
 ```
 
-## 🔑 Funcionalidades
+## Organização profissional (fase pré-receita)
 
-- **Autenticação** — Login com senha e Magic Link
-- **Gestão Documental** — Upload, pastas, editor de documentos
-- **Gestão de Equipe** — Convite de membros, roles (Admin, Gestor, Membro)
-- **Tema Claro/Escuro** — Toggle nas configurações
-- **Multi-empresa** — Cada empresa tem seus dados isolados via RLS
+Atualmente o projeto adota o modelo **Frontend + BFF no mesmo app Next.js**:
 
-## 🌐 Deploy
+- **Frontend**: componentes React em `src/components` e telas em `src/views`
+- **Backend-for-Frontend**: middleware e runtime server no próprio Next.js (`middleware.ts`)
+- **Infra de dados**: scripts e schemas Supabase em `supabase/` e arquivos SQL versionados
 
-O projeto é deployado automaticamente na **Vercel** via push para a branch `feature/dashboard`.
+Esse formato é o recomendado para pré-receita: menos custo operacional e velocidade maior de entrega.
 
-**Produção:** [https://solutia-saas.vercel.app](https://solutia-saas.vercel.app)
+Quando houver escala (time maior, alto volume, requisitos de compliance), aí sim vale separar em repositórios/pacotes dedicados para `frontend`, `backend` e `infra`.
 
-## 📄 Licença
+## Funcionalidades
+
+- Autenticação com Supabase
+- Gestão de documentos (árvore, upload, preview, assinatura)
+- Dashboard com painéis configuráveis
+- Tema por usuário (modo claro/escuro, cor principal, modo compacto)
+- Persistência de estado da árvore (pastas expandidas por tela)
+- Analytics interno para superadmin
+
+## Deploy
+
+O projeto está preparado para deploy em plataformas compatíveis com Next.js (ex: Vercel).
+
+## Licença
 
 Proprietary — Solutia Core © 2026

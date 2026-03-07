@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
+import { useUserPreferences } from '@/contexts/UserPreferencesContext'
 import {
     Folder, FolderOpen, FileText, FileSpreadsheet, FileImage,
     File, ChevronRight, ChevronDown, Plus, Edit2, Trash2,
@@ -13,6 +14,16 @@ interface Pasta {
     empresa_id: string
     children?: Pasta[]
 }
+
+const GENERAL_FOLDER_NAME = 'Geral'
+
+const normalizeText = (value: string) => value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+
+const isProtectedDocument = (doc: Documento) => normalizeText(doc.titulo).startsWith('termo de uso')
 
 interface Documento {
     id: string
@@ -30,6 +41,7 @@ interface Documento {
 
 interface DocumentTreeProps {
     empresaId: string
+    viewKey?: string
     onSelectDocument: (doc: Documento) => void
     onSelectFolder: (pasta: Pasta | null) => void
     selectedDocId?: string | null
@@ -162,12 +174,12 @@ function DraggableDoc({
                     e.stopPropagation()
                     setCtxMenu({ x: e.clientX, y: e.clientY })
                 }}
-                className={`flex items-center gap-2 py-1.5 px-2 rounded-lg cursor-grab active:cursor-grabbing transition-colors
-                    ${selectedDocId === doc.id ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                className={`flex items-center gap-1.5 py-1 px-2 rounded-md cursor-grab active:cursor-grabbing transition-colors text-xs
+                    ${selectedDocId === doc.id ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 ring-1 ring-blue-500/40' : 'hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                 style={{ paddingLeft: `${level * 16 + 8}px` }}
             >
                 {getFileIcon(doc.extensao)}
-                <span className="text-sm truncate flex-1">{doc.titulo}</span>
+                <span className="text-xs truncate flex-1">{doc.titulo}</span>
                 {doc.assinado && (
                     <span className="text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 px-1.5 py-0.5 rounded-full">✓</span>
                 )}
@@ -180,7 +192,7 @@ function DraggableDoc({
                     items={[
                         { label: 'Copiar', icon: <Copy size={14} />, onClick: () => onCopy(doc) },
                         { label: 'Renomear', icon: <Edit2 size={14} />, onClick: () => onRename(doc) },
-                        { label: 'Excluir', icon: <Trash2 size={14} />, onClick: () => onDelete(doc), danger: true, disabled: doc.assinado },
+                        { label: 'Excluir', icon: <Trash2 size={14} />, onClick: () => onDelete(doc), danger: true, disabled: doc.assinado || isProtectedDocument(doc) },
                     ]}
                 />
             )}
@@ -197,7 +209,8 @@ function FolderNode({
     onSelectDocument, onSelectFolder,
     onRename, onDelete, onCreateSubfolder,
     onMoveDoc, onMoveFolder, onPaste,
-    onCopyFile, onRenameFile, onDeleteFile
+    onCopyFile, onRenameFile, onDeleteFile,
+    expandedFolderIds, onToggleExpanded
 }: {
     pasta: Pasta; documentos: Documento[]; level?: number
     selectedDocId?: string | null; selectedFolderId?: string | null
@@ -212,12 +225,14 @@ function FolderNode({
     onCopyFile: (doc: Documento) => void
     onRenameFile: (doc: Documento) => void
     onDeleteFile: (doc: Documento) => void
+    expandedFolderIds: Set<string>
+    onToggleExpanded: (folderId: string, expanded: boolean) => void
 }) {
-    const [expanded, setExpanded] = useState(level === 0)
     const [dragOver, setDragOver] = useState(false)
     const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(null)
     const isSelected = selectedFolderId === pasta.id
     const folderDocs = sortDocs(documentos.filter(d => d.pasta_id === pasta.id))
+    const expanded = expandedFolderIds.has(pasta.id)
 
     const handleDragOver = (e: React.DragEvent) => {
         e.preventDefault()
@@ -239,10 +254,10 @@ function FolderNode({
         const folderId = e.dataTransfer.getData('application/folder-id')
         if (docId) {
             onMoveDoc(docId, pasta.id, pasta.nome)
-            setExpanded(true)
+            onToggleExpanded(pasta.id, true)
         } else if (folderId && folderId !== pasta.id) {
             onMoveFolder(folderId, pasta.id)
-            setExpanded(true)
+            onToggleExpanded(pasta.id, true)
         }
     }
 
@@ -255,16 +270,16 @@ function FolderNode({
                     e.dataTransfer.effectAllowed = 'move'
                     // DO NOT stopPropagation here — it prevents the drag from starting in nested scenarios
                 }}
-                className={`flex items-center gap-1 py-1.5 px-2 rounded-lg cursor-pointer group transition-all duration-150
+                className={`flex items-center gap-1 py-1 px-2 rounded-md cursor-pointer group transition-all duration-150 text-xs
                     ${dragOver
-                        ? 'bg-indigo-100 dark:bg-indigo-800/40 ring-2 ring-indigo-400 scale-[1.02]'
+                        ? 'bg-blue-100 dark:bg-blue-800/40 ring-1 ring-blue-400 scale-[1.02]'
                         : isSelected
-                            ? 'bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300'
+                            ? 'bg-blue-50 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 ring-1 ring-blue-500/40'
                             : 'hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                 style={{ paddingLeft: `${level * 16 + 8}px` }}
                 onClick={() => {
-                    setExpanded(!expanded)
+                    onToggleExpanded(pasta.id, !expanded)
                     onSelectFolder(pasta)
                 }}
                 onDragOver={handleDragOver}
@@ -280,12 +295,12 @@ function FolderNode({
                     {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                 </span>
                 {expanded
-                    ? <FolderOpen size={18} className={dragOver ? 'text-indigo-600' : 'text-indigo-500'} />
-                    : <Folder size={18} className={dragOver ? 'text-indigo-600' : 'text-indigo-400'} />
+                    ? <FolderOpen size={18} className={dragOver ? 'text-yellow-500' : 'text-yellow-500'} />
+                    : <Folder size={18} className={dragOver ? 'text-yellow-500' : 'text-yellow-400'} fill="currentColor" />
                 }
-                <span className="text-sm font-medium truncate flex-1 ml-1">
+                <span className="text-xs font-medium truncate flex-1 ml-1" style={isSelected ? { color: 'var(--primary-color)' } : {}}>
                     {pasta.nome}
-                    {dragOver && <span className="text-xs text-indigo-500 ml-1">← soltar aqui</span>}
+                    {dragOver && <span className="text-[10px] text-blue-500 ml-1">← soltar aqui</span>}
                 </span>
                 <span className="text-xs text-gray-400 mr-1">{folderDocs.length}</span>
                 <button
@@ -333,6 +348,8 @@ function FolderNode({
                             onCopyFile={onCopyFile}
                             onRenameFile={onRenameFile}
                             onDeleteFile={onDeleteFile}
+                            expandedFolderIds={expandedFolderIds}
+                            onToggleExpanded={onToggleExpanded}
                         />
                     ))}
 
@@ -357,11 +374,12 @@ function FolderNode({
 // =====================================================
 // Main DocumentTree
 // =====================================================
-export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, selectedDocId, selectedFolderId, refreshTrigger }: DocumentTreeProps) {
+export function DocumentTree({ empresaId, viewKey = 'default', onSelectDocument, onSelectFolder, selectedDocId, selectedFolderId, refreshTrigger }: DocumentTreeProps) {
+    const { preferences, setExpandedFolders, toggleExpandedFolder } = useUserPreferences()
     const [pastas, setPastas] = useState<Pasta[]>([])
     const [documentos, setDocumentos] = useState<Documento[]>([])
     const [loading, setLoading] = useState(true)
-    const [rootDragOver, setRootDragOver] = useState(false)
+    const expandedFolderIds = new Set(preferences.documentTree.expandedByView[viewKey] || [])
 
     const fetchData = useCallback(async () => {
         setLoading(true)
@@ -372,11 +390,61 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
                 supabase.from('assinaturas').select('documento_id')
             ])
 
-            if (pastasRes.data) setPastas(pastasRes.data)
+            let loadedPastas = pastasRes.data || []
+            let geralFolder = loadedPastas.find((p) => normalizeText(p.nome) === normalizeText(GENERAL_FOLDER_NAME))
 
-            if (docsRes.data) {
+            if (!geralFolder) {
+                const { data: createdGeral, error: createGeralError } = await supabase
+                    .from('pastas')
+                    .insert({
+                        empresa_id: empresaId,
+                        nome: GENERAL_FOLDER_NAME,
+                        pasta_pai_id: null,
+                    })
+                    .select()
+                    .single()
+
+                if (createGeralError) {
+                    console.error('Erro ao garantir pasta Geral:', createGeralError)
+                } else if (createdGeral) {
+                    loadedPastas = [...loadedPastas, createdGeral]
+                    geralFolder = createdGeral
+                }
+            }
+
+            if (loadedPastas.length) setPastas(loadedPastas)
+
+            let loadedDocs = docsRes.data || []
+
+            if (geralFolder && loadedDocs.some((d) => !d.pasta_id)) {
+                const { error: moveRootDocsError } = await supabase
+                    .from('documentos')
+                    .update({
+                        pasta_id: geralFolder.id,
+                        pasta: GENERAL_FOLDER_NAME,
+                    })
+                    .eq('empresa_id', empresaId)
+                    .is('deleted_at', null)
+                    .is('pasta_id', null)
+
+                if (moveRootDocsError) {
+                    console.error('Erro ao mover documentos sem pasta para Geral:', moveRootDocsError)
+                } else {
+                    const { data: refreshedDocs } = await supabase
+                        .from('documentos')
+                        .select('*')
+                        .eq('empresa_id', empresaId)
+                        .is('deleted_at', null)
+
+                    loadedDocs = refreshedDocs || loadedDocs
+                }
+            }
+
+            if (loadedDocs.length) {
                 const assinadosSet = new Set((assinaturasRes.data || []).map(a => a.documento_id))
-                setDocumentos(docsRes.data.map(d => ({ ...d, assinado: assinadosSet.has(d.id) })))
+                setDocumentos(loadedDocs.map(d => ({ ...d, assinado: assinadosSet.has(d.id) })))
+            } else {
+                setDocumentos([])
             }
         } catch (e) {
             console.error('Erro ao carregar árvore:', e)
@@ -387,9 +455,27 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
 
     useEffect(() => { fetchData() }, [fetchData, refreshTrigger])
 
-    const tree = buildTree(pastas)
-    const rootDocs = sortDocs(documentos.filter(d => !d.pasta_id))
+    useEffect(() => {
+        if (!pastas.length) return
+        const validFolderIds = new Set(pastas.map(p => p.id))
+        const filtered = (preferences.documentTree.expandedByView[viewKey] || []).filter(id => validFolderIds.has(id))
+        if (filtered.length !== (preferences.documentTree.expandedByView[viewKey] || []).length) {
+            setExpandedFolders(viewKey, filtered)
+        }
+    }, [pastas, preferences.documentTree.expandedByView, setExpandedFolders, viewKey])
 
+    useEffect(() => {
+        if (!pastas.length) return
+        const current = preferences.documentTree.expandedByView[viewKey]
+        if (current && current.length > 0) return
+        const rootIds = pastas.filter(p => !p.pasta_pai_id).map(p => p.id)
+        if (rootIds.length) {
+            setExpandedFolders(viewKey, rootIds)
+        }
+    }, [pastas, preferences.documentTree.expandedByView, setExpandedFolders, viewKey])
+
+    const tree = buildTree(pastas)
+    const generalFolder = pastas.find((p) => normalizeText(p.nome) === normalizeText(GENERAL_FOLDER_NAME))
     // === DUPLICATE CHECK ===
     const hasDuplicateName = (titulo: string, pastaId: string | null): boolean => {
         return documentos.some(d => d.titulo === titulo && d.pasta_id === pastaId)
@@ -398,6 +484,10 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
     // === MOVE DOCUMENT ===
     const handleMoveDoc = async (docId: string, targetPastaId: string | null, targetPastaNome: string) => {
         const doc = documentos.find(d => d.id === docId)
+        if (doc && isProtectedDocument(doc) && generalFolder && targetPastaId !== generalFolder.id) {
+            alert('O arquivo "Termo de Uso" deve permanecer na pasta Geral.')
+            return
+        }
         if (doc && hasDuplicateName(doc.titulo, targetPastaId)) {
             alert(`Já existe um arquivo "${doc.titulo}" nesta pasta.`)
             return
@@ -504,6 +594,10 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
             alert('Documentos assinados não podem ser excluídos.')
             return
         }
+        if (isProtectedDocument(doc)) {
+            alert('O arquivo "Termo de Uso" é obrigatório e não pode ser excluído.')
+            return
+        }
         if (!confirm(`Excluir "${doc.titulo}"?`)) return
 
         const { error } = await supabase.from('documentos')
@@ -565,13 +659,14 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between px-3 py-1.5 border-b border-gray-200 dark:border-gray-700">
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400">
                     Pastas
                 </span>
                 <button
                     onClick={handleCreateRootFolder}
-                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 hover:text-indigo-600 transition-colors"
+                    className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500 transition-colors"
+                    style={{ color: 'var(--primary-color)' }}
                     title="Nova Pasta"
                 >
                     <Plus size={16} />
@@ -579,7 +674,7 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
             </div>
 
             <div
-                className="flex-1 overflow-y-auto py-2 px-1 space-y-0.5"
+                className="flex-1 overflow-y-auto py-1.5 px-1 space-y-0.5"
                 onContextMenu={(e) => {
                     // Prevent browser default context menu on blank area
                     e.preventDefault()
@@ -603,45 +698,12 @@ export function DocumentTree({ empresaId, onSelectDocument, onSelectFolder, sele
                         onCopyFile={handleCopyFile}
                         onRenameFile={handleRenameFile}
                         onDeleteFile={handleDeleteFile}
+                        expandedFolderIds={expandedFolderIds}
+                        onToggleExpanded={(folderId, expanded) => toggleExpandedFolder(viewKey, folderId, expanded)}
                     />
                 ))}
 
-                {/* Root drop zone */}
-                <div
-                    className={`mt-3 pt-2 border-t border-gray-100 dark:border-gray-800 transition-all duration-150 rounded-lg
-                        ${rootDragOver ? 'bg-indigo-50 dark:bg-indigo-900/20 ring-2 ring-indigo-300' : ''}`}
-                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setRootDragOver(true) }}
-                    onDragLeave={() => setRootDragOver(false)}
-                    onDrop={(e) => {
-                        e.preventDefault()
-                        setRootDragOver(false)
-                        const docId = e.dataTransfer.getData('application/doc-id')
-                        const folderId = e.dataTransfer.getData('application/folder-id')
-                        if (docId) handleMoveDoc(docId, null, 'Geral')
-                        else if (folderId) handleMoveFolder(folderId, null)
-                    }}
-                >
-                    <span className="text-xs text-gray-400 px-2 font-medium">
-                        Sem pasta {rootDragOver && <span className="text-indigo-500">← soltar aqui</span>}
-                    </span>
-                    {rootDocs.map(doc => (
-                        <DraggableDoc
-                            key={doc.id}
-                            doc={doc}
-                            level={0}
-                            selectedDocId={selectedDocId}
-                            onSelectDocument={onSelectDocument}
-                            onCopy={handleCopyFile}
-                            onRename={handleRenameFile}
-                            onDelete={handleDeleteFile}
-                        />
-                    ))}
-                    {rootDocs.length === 0 && !rootDragOver && (
-                        <div className="text-xs text-gray-300 px-2 py-1 italic">vazio</div>
-                    )}
-                </div>
-
-                {tree.length === 0 && rootDocs.length === 0 && (
+                {tree.length === 0 && (
                     <div className="text-center py-8 text-sm text-gray-400">
                         Nenhuma pasta criada.
                     </div>

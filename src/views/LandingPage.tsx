@@ -1,10 +1,10 @@
 import { useState, useEffect } from "react"
-import { useNavigate } from "react-router-dom"
+import { useRouter } from "next/navigation"
 import { Eye, EyeOff, Lock, Loader2, Mail } from "lucide-react"
 import { supabase } from "@/lib/supabase"
 
 export default function LandingPage() {
-    const navigate = useNavigate()
+    const router = useRouter()
     const [email, setEmail] = useState("")
     const [senha, setSenha] = useState("")
     const [erro, setErro] = useState("")
@@ -17,7 +17,7 @@ export default function LandingPage() {
     useEffect(() => {
         const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
             if (event === 'PASSWORD_RECOVERY') {
-                navigate("/update-password", { replace: true })
+                router.replace("/update-password")
                 return
             }
 
@@ -29,19 +29,19 @@ export default function LandingPage() {
 
                 localStorage.setItem("solutia_auth", "true")
                 localStorage.setItem("solutia_user", session.user.email || "")
-                navigate("/dashboard", { replace: true })
+                router.replace("/dashboard")
             }
         })
 
         return () => subscription.unsubscribe()
-    }, [navigate])
+    }, [router])
 
     // Limpa estados residuais ao montar a página de login para evitar vazamentos de cache
-    useState(() => {
+    useEffect(() => {
         localStorage.removeItem("solutia_user")
         localStorage.removeItem("solutia_empresa_id")
         localStorage.removeItem("solutia_empresa_nome")
-    })
+    }, [])
 
     async function handleLogin(e: React.MouseEvent<HTMLButtonElement> | React.FormEvent) {
         e.preventDefault()
@@ -81,7 +81,7 @@ export default function LandingPage() {
                     if (empresaRef?.nome) localStorage.setItem("solutia_empresa_nome", empresaRef.nome)
                 }
 
-                navigate("/dashboard", { replace: true })
+                router.replace("/dashboard")
             }
         } catch (error) {
             console.error("Erro no login:", error)
